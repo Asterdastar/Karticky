@@ -621,8 +621,6 @@
   .account-signout:hover{ color:var(--text); }
   .admin-nav-label{ margin-top:16px; }
   .admin-nav-item{ margin-left:8px; width:calc(100% - 8px); }
-  .sidebar-view-switch{ display:flex; width:calc(100% - 16px); align-self:center; }
-  .sidebar-view-switch button{ flex:1; }
   .admin-note{ margin-bottom:18px; padding:12px 14px; border-left:3px solid var(--accent); background:var(--panel); color:var(--text-dim); font-size:13px; line-height:1.5; }
   .admin-content{ min-height:120px; }
   .admin-table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:12px; background:var(--panel); }
@@ -678,11 +676,15 @@
   .market-subject-set-actions .btn{ min-height:32px; }
   .market-subject-footer{ display:flex; justify-content:flex-end; margin-top:4px; }
   .market-preview-content{ min-height:240px; display:flex; flex-direction:column; gap:16px; }
-  .market-preview-card{ min-height:210px; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px; border:1px solid var(--border); border-radius:12px; background:var(--bg-soft); color:var(--text); font-family:inherit; text-align:center; cursor:pointer; }
-  .market-preview-card img{ max-width:100%; max-height:220px; object-fit:contain; border-radius:8px; }
+  .market-preview-card{ width:100%; min-height:230px; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px; border:1px solid var(--border); border-radius:12px; background:var(--bg-soft); color:var(--text); font-family:inherit; text-align:center; cursor:pointer; }
+  .market-preview-card.has-image{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; text-align:left; }
+  .market-preview-text-side{ min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
+  .market-preview-image-side{ min-width:0; width:100%; height:100%; min-height:180px; display:flex; align-items:center; justify-content:center; }
+  .market-preview-card img{ display:block; max-width:100%; max-height:320px; object-fit:contain; border-radius:8px; }
   .market-preview-text{ color:var(--text); font-size:19px; font-weight:700; line-height:1.5; }
   .market-preview-card small{ color:var(--text-dim); font-size:12px; }
   .market-preview-controls{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .market-preview-next svg{ transform:rotate(180deg); }
   .market-preview-counter{ color:var(--text-dim); font-size:13px; font-weight:700; }
   .market-preview-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
   .market-public-mark{ color:var(--success); }
@@ -767,7 +769,25 @@ const LIBRARY_VIEW_KEY = 'kartlicky_library_view_v1';
 const SUPABASE_URL = 'https://uwpfwurxoixsijbedtfn.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_QhDs7AiYAueATMVJG3v7Ig_UlqX36yJ';
 const LEGACY_MIGRATED_KEY = 'kartlicky_supabase_legacy_migrated_v1';
+const STUDY_SETTINGS_KEY = 'kartlicky_study_settings_v1';
 const CLASS_EMOJIS = ['📚','🧪','🌿','🧮','🎨','🌍','💬','🎵','⚽','💻','⭐','🧠'];
+const DEFAULT_STUDY_SETTINGS = { trackProgress:true, starredOnly:false, front:'term', tts:false, cardSize:'large', flipAnimation:true, showShortcuts:true };
+
+function loadStudySettings(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(STUDY_SETTINGS_KEY) || '{}');
+    const settings = { ...DEFAULT_STUDY_SETTINGS, ...saved };
+    if(!['term','def'].includes(settings.front)) settings.front = DEFAULT_STUDY_SETTINGS.front;
+    if(!['small','medium','large'].includes(settings.cardSize)) settings.cardSize = DEFAULT_STUDY_SETTINGS.cardSize;
+    return settings;
+  }catch(e){ return { ...DEFAULT_STUDY_SETTINGS }; }
+}
+
+let userStudySettings = loadStudySettings();
+
+function saveStudySettings(){
+  try{ localStorage.setItem(STUDY_SETTINGS_KEY,JSON.stringify(userStudySettings)); }catch(e){}
+}
 
 function getSavedLibraryView(){
   try{
@@ -1210,23 +1230,34 @@ function normalizeCard(card){
 
 async function imageFileToDataUrl(file){
   if(typeof createImageBitmap === 'function'){
-    try{
-      const bitmap = await createImageBitmap(file);
-      const maxDimension = 1600;
-      const scale = Math.min(1,maxDimension/Math.max(bitmap.width,bitmap.height));
+    let bitmap = null;
+    try{ bitmap = await createImageBitmap(file); }catch(e){}
+    if(bitmap){
       const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1,Math.round(bitmap.width*scale));
-      canvas.height = Math.max(1,Math.round(bitmap.height*scale));
       const context = canvas.getContext('2d');
-      if(context){
+      if(!context){ bitmap.close(); throw new Error('Prohlížeč nemůže obrázek upravit.'); }
+      const maxDimension = 1280;
+      let scale = Math.min(1,maxDimension/Math.max(bitmap.width,bitmap.height));
+      let optimized = '';
+      for(let attempt=0;attempt<7;attempt++){
+        canvas.width = Math.max(1,Math.round(bitmap.width*scale));
+        canvas.height = Math.max(1,Math.round(bitmap.height*scale));
+        context.clearRect(0,0,canvas.width,canvas.height);
         context.drawImage(bitmap,0,0,canvas.width,canvas.height);
-        const optimized = canvas.toDataURL('image/webp',0.82);
-        bitmap.close();
-        if(optimized.length < file.size*1.4) return optimized;
-      }else{
-        bitmap.close();
+        const quality = Math.max(.42,.78-attempt*.07);
+        const webp = canvas.toDataURL('image/webp',quality);
+        const jpeg = canvas.toDataURL('image/jpeg',quality);
+        optimized = webp.length < jpeg.length ? webp : jpeg;
+        if(optimized.length <= 360000){
+          bitmap.close();
+          return optimized;
+        }
+        scale *= .82;
       }
-    }catch(e){}
+      bitmap.close();
+      if(optimized.length <= 360000) return optimized;
+      throw new Error('Obrázek je příliš složitý na uložení. Zkus menší nebo více komprimovaný obrázek.');
+    }
   }
   return new Promise((resolve,reject) => {
     const reader = new FileReader();
@@ -1234,6 +1265,13 @@ async function imageFileToDataUrl(file){
     reader.onerror = () => reject(new Error('Soubor se nepodařilo přečíst.'));
     reader.readAsDataURL(file);
   });
+}
+
+async function compactCardImage(image){
+  if(typeof image !== 'string' || !image.startsWith('data:image/') || image.length <= 360000) return image;
+  const response = await fetch(image);
+  const blob = await response.blob();
+  return imageFileToDataUrl(blob);
 }
 
 /* ============================= ROOT RENDER ============================= */
@@ -1310,17 +1348,13 @@ function renderSidebar(){
     <button class="nav-item ${state.view==='home'?'active':''}" data-nav="home">${icon('home')} Domů</button>
     <button class="nav-item ${state.view==='library'?'active':''}" data-nav="library">${icon('folder')} Vaše knihovna</button>
     <button class="nav-item ${state.view==='marketplace'?'active':''}" data-nav="marketplace">${icon('users')} Burza</button>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section-label">Zobrazení setů</div>
-    <div class="sidebar-view-switch sort-switch" aria-label="Zobrazení setů"><button type="button" data-library-view="grid" class="${state.libraryView==='grid'?'active':''}">Bloky</button><button type="button" data-library-view="list" class="${state.libraryView==='list'?'active':''}">Řádky</button></div>
     ${isAdmin?`<div class="sidebar-divider"></div><div class="sidebar-section-label admin-nav-label">Administrace</div><button class="nav-item admin-nav-item ${state.view==='admin'?'active':''}" data-nav="admin">${icon('users')} Uživatelé</button>`:''}
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-label">Předměty</div>
     ${state.classes.map(c => `<div class="class-item-wrap ${state.activeClassFilter===c?'active':''}"><button class="class-item ${state.activeClassFilter===c?'active':''}" data-class="${escapeHtml(c)}" title="${escapeHtml(c)}">${classIcon(c)} <span>${escapeHtml(c)}</span></button><span class="class-actions"><button data-edit-class="${escapeHtml(c)}" title="Upravit předmět">${icon('pencil',13)}</button><button data-delete-class="${escapeHtml(c)}" title="Smazat předmět">${icon('trash',13)}</button></span></div>`).join('')}
     <button class="nav-item" data-action="new-class">${icon('plus')} Nový předmět</button>
-    <div class="account-block"><div class="account-email" title="${escapeHtml(currentUser.email||'')}">${escapeHtml(currentUser.email||'')}</div><button class="account-signout" data-action="signout">${icon('back',16)} Odhlásit se</button></div>
+    <div class="account-block"><div class="account-email" title="${escapeHtml(currentUser.email||'')}">${escapeHtml(currentUser.email||'')}</div><button class="account-signout" data-action="settings">${icon('gear',16)} Nastavení</button><button class="account-signout" data-action="signout">${icon('back',16)} Odhlásit se</button></div>
   `;
-  el.querySelectorAll('[data-library-view]').forEach(button => button.onclick = () => setLibraryView(button.dataset.libraryView));
   el.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { mobileNavOpen=false; state.activeClassFilter=null; state.view = b.dataset.nav; render(); });
   el.querySelectorAll('[data-class]').forEach(b => b.onclick = () => {
     mobileNavOpen = false;
@@ -1353,6 +1387,11 @@ function renderSidebar(){
   el.querySelector('[data-action="signout"]').onclick = async () => {
     const { error } = await supabaseClient.auth.signOut();
     if(error) showToast('Odhlášení se nezdařilo: ' + error.message);
+  };
+  el.querySelector('[data-action="settings"]').onclick = () => {
+    mobileNavOpen = false;
+    render();
+    openStudySettings();
   };
   return el;
 }
@@ -1680,7 +1719,7 @@ function renderMarketplace(){
         <div class="market-preview-controls">
           <button type="button" class="btn btn-ghost btn-sm" id="marketPreviewPrevious">${icon('back',15)} Předchozí</button>
           <span class="market-preview-counter" id="marketPreviewCounter"></span>
-          <button type="button" class="btn btn-ghost btn-sm" id="marketPreviewNext">Další ${icon('back',15)}</button>
+          <button type="button" class="btn btn-ghost btn-sm market-preview-next" id="marketPreviewNext">Další ${icon('back',15)}</button>
         </div>
       </div>
       <div class="market-preview-actions"><button type="button" class="btn btn-primary" id="marketPreviewAdd">${icon('plus',16)} Přidat do knihovny</button></div>
@@ -1691,7 +1730,10 @@ function renderMarketplace(){
       const card = cards[cardIndex];
       const text = flipped ? (card.def || card.term || '—') : (card.term || card.def || '—');
       const image = flipped ? (card.defImage || card.image || null) : (card.termImage || card.image || null);
-      previewCard.innerHTML = `${image?`<img src="${escapeHtml(image)}" alt="">`:''}<span class="market-preview-text">${sanitizeRichText(text)}</span><small>${flipped?'Definice':'Pojem'} · kliknutím otočit</small>`;
+      previewCard.classList.toggle('has-image',Boolean(image));
+      previewCard.innerHTML = image
+        ? `<div class="market-preview-text-side"><span class="market-preview-text">${sanitizeRichText(text)}</span><small>${flipped?'Definice':'Pojem'} · kliknutím otočit</small></div><div class="market-preview-image-side"><img src="${escapeHtml(image)}" alt="Obrázek kartičky"></div>`
+        : `<span class="market-preview-text">${sanitizeRichText(text)}</span><small>${flipped?'Definice':'Pojem'} · kliknutím otočit</small>`;
       counter.textContent = `${cardIndex+1} / ${cards.length}`;
       const previewImage = previewCard.querySelector('img');
       if(previewImage) previewImage.onclick = event => { event.stopPropagation(); openImageLightbox(previewImage.src); };
@@ -2214,10 +2256,20 @@ function openImportModal(){
   };
 }
 
-function commitDraft(){
+async function commitDraft(){
   if(!draft.title.trim()){ showToast('Zadej prosím název sady.'); return; }
   const validCards = draft.cards.filter(c => c.term.trim() || c.def.trim());
   if(validCards.length === 0){ showToast('Přidej alespoň jednu kartičku s pojmem nebo definicí.'); return; }
+  try{
+    for(const card of validCards){
+      card.termImage = await compactCardImage(card.termImage);
+      card.defImage = await compactCardImage(card.defImage);
+      card.image = await compactCardImage(card.image);
+    }
+  }catch(error){
+    showToast(error.message || 'Obrázek se nepodařilo připravit k uložení.');
+    return;
+  }
   draft.cards = validCards;
   const now = Date.now();
   const idx = state.sets.findIndex(s => s.id === draft.id);
@@ -2247,7 +2299,7 @@ function openStudy(setId){
     showHint: false,
     history: [],
     wrong: [],
-    settings: { trackProgress:true, starredOnly:false, front:'term', tts:false, cardSize:'large', flipAnimation:true },
+    settings: userStudySettings,
   };
   state.view = 'study';
   render();
@@ -2261,8 +2313,9 @@ function recordStudyProgress(setId, remaining, total){
 }
 
 function setTrackProgress(enabled){
-  if(!state.study) return;
-  state.study.settings.trackProgress = enabled;
+  userStudySettings.trackProgress = enabled;
+  saveStudySettings();
+  if(state.study) state.study.settings = userStudySettings;
   document.querySelectorAll('#trackSwitch, #mTrack').forEach(toggle => toggle.classList.toggle('on', enabled));
 }
 
@@ -2503,31 +2556,31 @@ function renderStudy(){
 }
 
 function openStudySettings(){
-  const s = currentSet();
   const st = state.study;
+  const settings = st?.settings || userStudySettings;
   openModal(`
-    <div class="modal-head"><h2>Možnosti</h2><button class="modal-close" data-close>${icon('x',16)}</button></div>
+    <div class="modal-head"><h2>Nastavení</h2><button class="modal-close" data-close>${icon('x',16)}</button></div>
     <div class="opt-row">
       <div class="opt-row-text">
         <p class="opt-row-title">Sledovat pokrok</p>
         <p class="opt-row-desc">Třídí kartičky podle toho, co už umíš a co se ještě učíš. Vypni pro rychlé procházení.</p>
       </div>
-      <button class="switch ${st.settings.trackProgress?'on':''}" id="mTrack"><span class="knob"></span></button>
+      <button class="switch ${settings.trackProgress?'on':''}" id="mTrack"><span class="knob"></span></button>
     </div>
     <div class="opt-row">
       <div class="opt-row-text">
         <p class="opt-row-title">Učit se jen označené pojmy</p>
         <p class="opt-row-desc">Zobrazí pouze kartičky označené hvězdičkou.</p>
       </div>
-      <button class="switch ${st.settings.starredOnly?'on':''}" id="mStar"><span class="knob"></span></button>
+      <button class="switch ${settings.starredOnly?'on':''}" id="mStar"><span class="knob"></span></button>
     </div>
     <div class="opt-row">
       <div class="opt-row-text"><p class="opt-row-title">Přední strana</p></div>
       <div class="setting-picker" id="frontPicker">
-        <button type="button" class="setting-picker-current" id="frontToggle"><span>${st.settings.front==='term'?'Pojem':'Definice'}</span><span>⌄</span></button>
+        <button type="button" class="setting-picker-current" id="frontToggle"><span>${settings.front==='term'?'Pojem':'Definice'}</span><span>⌄</span></button>
         <div class="setting-picker-menu">
-          <button type="button" class="setting-picker-option ${st.settings.front==='term'?'selected':''}" data-front-side="term">Pojem</button>
-          <button type="button" class="setting-picker-option ${st.settings.front==='def'?'selected':''}" data-front-side="def">Definice</button>
+          <button type="button" class="setting-picker-option ${settings.front==='term'?'selected':''}" data-front-side="term">Pojem</button>
+          <button type="button" class="setting-picker-option ${settings.front==='def'?'selected':''}" data-front-side="def">Definice</button>
         </div>
       </div>
     </div>
@@ -2537,11 +2590,11 @@ function openStudySettings(){
         <p class="opt-row-desc">Nastaví výšku kartičky při procvičování.</p>
       </div>
       <div class="setting-picker" id="cardSizePicker">
-        <button type="button" class="setting-picker-current" id="cardSizeToggle"><span>${(st.settings.cardSize||'large')==='small'?'Menší':(st.settings.cardSize||'large')==='medium'?'Standardní':'Větší'}</span><span>⌄</span></button>
+        <button type="button" class="setting-picker-current" id="cardSizeToggle"><span>${(settings.cardSize||'large')==='small'?'Menší':(settings.cardSize||'large')==='medium'?'Standardní':'Větší'}</span><span>⌄</span></button>
         <div class="setting-picker-menu">
-          <button type="button" class="setting-picker-option ${(st.settings.cardSize||'large')==='small'?'selected':''}" data-card-size="small">Menší</button>
-          <button type="button" class="setting-picker-option ${(st.settings.cardSize||'large')==='medium'?'selected':''}" data-card-size="medium">Standardní</button>
-          <button type="button" class="setting-picker-option ${(st.settings.cardSize||'large')==='large'?'selected':''}" data-card-size="large">Větší</button>
+          <button type="button" class="setting-picker-option ${(settings.cardSize||'large')==='small'?'selected':''}" data-card-size="small">Menší</button>
+          <button type="button" class="setting-picker-option ${(settings.cardSize||'large')==='medium'?'selected':''}" data-card-size="medium">Standardní</button>
+          <button type="button" class="setting-picker-option ${(settings.cardSize||'large')==='large'?'selected':''}" data-card-size="large">Větší</button>
         </div>
       </div>
     </div>
@@ -2550,13 +2603,13 @@ function openStudySettings(){
         <p class="opt-row-title">Animace otočení</p>
         <p class="opt-row-desc">Plynulé otočení kartičky při zobrazení druhé strany.</p>
       </div>
-      <button class="switch ${st.settings.flipAnimation!==false?'on':''}" id="mFlip"><span class="knob"></span></button>
+      <button class="switch ${settings.flipAnimation!==false?'on':''}" id="mFlip"><span class="knob"></span></button>
     </div>
     <div class="opt-row">
       <div class="opt-row-text"><p class="opt-row-title">Klávesové zkratky</p></div>
-      <button class="switch ${st.settings.showShortcuts!==false?'on':''}" id="mKbdToggle" aria-label="Zobrazit klávesové zkratky"><span class="knob"></span></button>
+      <button class="switch ${settings.showShortcuts!==false?'on':''}" id="mKbdToggle" aria-label="Zobrazit klávesové zkratky"><span class="knob"></span></button>
     </div>
-    <div class="kbd-list" id="kbdList" style="display:${st.settings.showShortcuts!==false?'flex':'none'}">
+    <div class="kbd-list" id="kbdList" style="display:${settings.showShortcuts!==false?'flex':'none'}">
       <div><span>Otočit kartičku</span><kbd>Mezerník</kbd></div>
       <div><span>Umím</span><kbd>D / →</kbd></div>
       <div><span>Neumím</span><kbd>A / ←</kbd></div>
@@ -2566,28 +2619,31 @@ function openStudySettings(){
         <p class="opt-row-title">Hlasové čtení</p>
         <p class="opt-row-desc">Nahlas přečte text na otočené straně kartičky.</p>
       </div>
-      <button class="switch ${st.settings.tts?'on':''}" id="mTts"><span class="knob"></span></button>
+      <button class="switch ${settings.tts?'on':''}" id="mTts"><span class="knob"></span></button>
     </div>
-    <div class="link-row danger" id="mRestart">Restartovat kartičky</div>
+    ${st?'<div class="link-row danger" id="mRestart">Restartovat kartičky</div>':''}
   `);
-  document.getElementById('mTrack').onclick = () => setTrackProgress(!st.settings.trackProgress);
+  document.getElementById('mTrack').onclick = () => setTrackProgress(!settings.trackProgress);
   document.getElementById('mStar').onclick = (e) => {
-    st.settings.starredOnly = !st.settings.starredOnly;
-    e.currentTarget.classList.toggle('on');
-    initQueueFromSettings();
+    settings.starredOnly = !settings.starredOnly;
+    saveStudySettings();
+    e.currentTarget.classList.toggle('on',settings.starredOnly);
+    if(st) initQueueFromSettings();
   };
   const frontPicker = document.getElementById('frontPicker');
   document.getElementById('frontToggle').onclick = () => frontPicker.classList.toggle('open');
   document.querySelectorAll('[data-front-side]').forEach(option => option.onclick = () => {
-    st.settings.front = option.dataset.frontSide;
-    st.flipped = false;
+    settings.front = option.dataset.frontSide;
+    saveStudySettings();
+    if(st) st.flipped = false;
     closeModal();
     render();
   });
   const cardSizePicker = document.getElementById('cardSizePicker');
   document.getElementById('cardSizeToggle').onclick = () => cardSizePicker.classList.toggle('open');
   document.querySelectorAll('[data-card-size]').forEach(option => option.onclick = () => {
-    st.settings.cardSize = option.dataset.cardSize;
+    settings.cardSize = option.dataset.cardSize;
+    saveStudySettings();
     closeModal();
     render();
   });
@@ -2596,21 +2652,24 @@ function openStudySettings(){
     if(!frontPicker.contains(e.target)) frontPicker.classList.remove('open');
   });
   document.getElementById('mFlip').onclick = (e) => {
-    st.settings.flipAnimation = !st.settings.flipAnimation;
-    e.currentTarget.classList.toggle('on', st.settings.flipAnimation);
+    settings.flipAnimation = !settings.flipAnimation;
+    saveStudySettings();
+    e.currentTarget.classList.toggle('on', settings.flipAnimation);
     const flashCard = document.getElementById('flashCard');
-    if(flashCard) flashCard.classList.toggle('no-flip', !st.settings.flipAnimation);
+    if(flashCard) flashCard.classList.toggle('no-flip', !settings.flipAnimation);
   };
-  document.getElementById('mTts').onclick = (e) => { st.settings.tts = !st.settings.tts; e.currentTarget.classList.toggle('on'); };
+  document.getElementById('mTts').onclick = (e) => { settings.tts = !settings.tts; saveStudySettings(); e.currentTarget.classList.toggle('on'); };
   document.getElementById('mKbdToggle').onclick = () => {
     const l = document.getElementById('kbdList');
     const visible = l.style.display !== 'none';
-    st.settings.showShortcuts = !visible;
+    settings.showShortcuts = !visible;
+    saveStudySettings();
     l.style.display = visible ? 'none' : 'flex';
     document.getElementById('mKbdToggle').classList.toggle('on', !visible);
     document.querySelectorAll('.flash-shortcut-bar').forEach(bar => { bar.style.display = visible ? 'none' : 'flex'; });
   };
-  document.getElementById('mRestart').onclick = () => {
+  const restart = document.getElementById('mRestart');
+  if(restart) restart.onclick = () => {
     if(confirm('Restartovat pokrok v této sadě?')){ initQueueFromSettings(); closeModal(); render(); showToast('Kartičky restartovány.'); }
   };
 }
