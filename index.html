@@ -153,8 +153,9 @@
   .class-item:hover, .class-item.active{ background:var(--panel-2); color:var(--text); }
   .class-item-wrap{ display:flex; align-items:center; gap:3px; }
   .class-item-wrap .class-item{ flex:1; min-width:0; }
+  .class-item > span:not(.class-icon){ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .class-icon{ width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; font-size:16px; flex:0 0 auto; }
-  .class-actions{ display:flex; opacity:0; transition:opacity .15s ease; }
+  .class-actions{ display:flex; flex:0 0 auto; opacity:0; transition:opacity .15s ease; }
   .class-item-wrap:hover .class-actions, .class-item-wrap:focus-within .class-actions{ opacity:1; }
   .class-actions button{ width:26px; height:26px; border:0; border-radius:7px; background:transparent; color:var(--text-faint); cursor:pointer; display:flex; align-items:center; justify-content:center; }
   .class-actions button:hover{ background:var(--panel-2); color:var(--text); }
@@ -218,6 +219,13 @@
     grid-template-columns:repeat(auto-fill, minmax(255px, 1fr));
     gap:16px;
   }
+  .library-grid{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .library-grid.list-view,.home-set-grid.list-view{ grid-template-columns:1fr; gap:8px; }
+  .library-grid.list-view .set-card,.home-set-grid.list-view .set-card{ display:grid; grid-template-columns:minmax(130px,1.1fr) minmax(120px,1.5fr) minmax(160px,1fr); align-items:center; gap:12px; min-height:82px; padding:12px 16px; }
+  .library-grid.list-view .set-card-desc,.home-set-grid.list-view .set-card-desc{ min-width:0; }
+  .home-set-grid > .empty-state,.library-grid > .empty-state{ grid-column:1/-1; width:100%; max-width:none; margin:0; }
+  .home-set-grid > .empty-state{ padding:34px 24px; }
+  .subject-empty-actions{ display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:18px; }
   .set-card{
     background:var(--panel);
     border:1px solid var(--border);
@@ -488,7 +496,8 @@
   }
   .modal-wide{ max-width:640px; }
   .class-modal{ max-width:420px; }
-  .class-modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+  .class-modal-actions{ display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:18px; flex-wrap:wrap; }
+  .class-modal-actions .pill-toggle{ margin-right:auto; }
   .class-icon-field{ display:flex; align-items:center; gap:10px; }
   .class-icon-input{ width:64px; text-align:center; font-size:22px; padding:8px; }
   .class-icon-hint{ color:var(--text-faint); font-size:12px; line-height:1.4; }
@@ -506,7 +515,8 @@
   .class-set-option input{ accent-color:var(--accent); }
   .class-set-combobox{ position:relative; margin-bottom:8px; }
   .class-set-search{ margin:0; padding-right:42px; border-radius:10px; background:var(--field); }
-  .class-set-toggle{ position:absolute; top:5px; right:5px; width:32px; height:32px; border:0; border-radius:8px; background:transparent; color:var(--text-dim); cursor:pointer; font-size:18px; line-height:1; }
+  .class-set-toggle{ position:absolute; top:5px; right:5px; display:flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border:0; border-radius:8px; background:transparent; color:var(--text-dim); cursor:pointer; font-size:18px; line-height:1; transition:transform .16s ease, background .15s ease; }
+  .class-set-combobox.open .class-set-toggle{ transform:rotate(180deg); }
   .class-set-toggle:hover{ background:var(--panel-2); color:var(--text); }
   .class-set-list{ display:none; }
   .class-set-list.open{ display:flex; position:absolute; z-index:20; top:calc(100% + 4px); left:0; right:0; margin:0; }
@@ -517,6 +527,7 @@
   .home-section-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
   .home-section-title{ margin:0; color:var(--text-dim); font-size:15px; }
   .home-more{ border:0; background:none; color:var(--accent-hover); font:700 12px inherit; cursor:pointer; padding:4px; }
+  .home-header-actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .home-class-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; }
   .home-class-card{ display:flex; align-items:center; gap:10px; padding:14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-md); color:var(--text); cursor:pointer; text-align:left; }
   .home-class-card:hover{ border-color:var(--field-border); background:var(--panel-2); }
@@ -524,6 +535,7 @@
   .sort-switch{ display:inline-flex; gap:4px; padding:4px; border:1px solid var(--border); border-radius:12px; background:var(--panel); }
   .sort-switch button{ border:0; border-radius:8px; padding:7px 10px; background:transparent; color:var(--text-dim); font:700 12px inherit; cursor:pointer; }
   .sort-switch button.active, .sort-switch button:hover{ background:var(--panel-2); color:var(--text); }
+  .library-toolbar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
   .modal-head h2{ font-size:22px; margin:0; font-weight:800; letter-spacing:-0.01em; }
   .modal-close{ width:32px;height:32px;border-radius:50%; border:none; background:var(--field); color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center; }
@@ -645,6 +657,9 @@
     .sidebar.mobile-open{ transform:translateX(0); }
     .mobile-nav-scrim{ display:block; position:fixed; z-index:250; inset:0; border:0; background:rgba(4,3,14,.62); }
     .main{ padding:20px; }
+    .library-grid:not(.list-view){ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .library-grid.list-view .set-card,.home-set-grid.list-view .set-card{ grid-template-columns:minmax(0,1fr) auto; }
+    .library-grid.list-view .set-card-meta,.home-set-grid.list-view .set-card-meta{ grid-column:2; grid-row:1 / span 2; }
     .main.study-main{ min-height:100dvh; }
     .study-topbar{ flex-wrap:nowrap; padding:10px 12px; gap:8px; }
     .study-topbar-left{ gap:8px; }
@@ -667,12 +682,16 @@
     .home-set-grid, .home-class-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
     .admin-table th,.admin-table td{ padding:10px; }
     .marketplace-filters{ grid-template-columns:1fr; }
+    .library-toolbar{ width:100%; }
   }
   @media (max-width: 460px){
     .home-set-grid, .home-class-grid{ grid-template-columns:1fr; }
     .auth-screen{ padding:16px; }
     .auth-panel{ padding:24px; }
     .main{ padding:16px; }
+    .library-grid:not(.list-view){ grid-template-columns:1fr; }
+    .library-grid.list-view .set-card,.home-set-grid.list-view .set-card{ grid-template-columns:1fr; }
+    .library-grid.list-view .set-card-meta,.home-set-grid.list-view .set-card-meta{ grid-column:auto; grid-row:auto; }
     .flash-card.size-small,.flash-card.size-medium,.flash-card.size-large{ height:clamp(280px,50dvh,430px); }
     .flash-face{ padding:12px; }
     .flash-shortcut-bar{ flex-wrap:wrap; padding:9px 8px; font-size:11px; }
@@ -718,6 +737,7 @@ let state = {
   classVisibility: {},
   progress: {},
   librarySort: 'updated',
+  libraryView: 'grid',
   study: null // { setId, queue:[idx], pointer, flipped, history:[], settings:{...}, starred:Set }
 };
 
@@ -1196,7 +1216,7 @@ function renderSidebar(){
     ${isAdmin?`<div class="sidebar-divider"></div><div class="sidebar-section-label admin-nav-label">Administrace</div><button class="nav-item admin-nav-item ${state.view==='admin'?'active':''}" data-nav="admin">${icon('users')} Uživatelé</button>`:''}
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-label">Předměty</div>
-    ${state.classes.map(c => `<div class="class-item-wrap"><button class="class-item ${state.activeClassFilter===c?'active':''}" data-class="${escapeHtml(c)}">${classIcon(c)} <span>${escapeHtml(c)}</span></button><span class="class-actions"><button data-edit-class="${escapeHtml(c)}" title="Upravit předmět">${icon('pencil',13)}</button><button data-delete-class="${escapeHtml(c)}" title="Smazat předmět">${icon('trash',13)}</button></span></div>`).join('')}
+    ${state.classes.map(c => `<div class="class-item-wrap"><button class="class-item ${state.activeClassFilter===c?'active':''}" data-class="${escapeHtml(c)}" title="${escapeHtml(c)}">${classIcon(c)} <span>${escapeHtml(c)}</span></button><span class="class-actions"><button data-edit-class="${escapeHtml(c)}" title="Upravit předmět">${icon('pencil',13)}</button><button data-delete-class="${escapeHtml(c)}" title="Smazat předmět">${icon('trash',13)}</button></span></div>`).join('')}
     <button class="nav-item" data-action="new-class">${icon('plus')} Nový předmět</button>
     <div class="account-block"><div class="account-email" title="${escapeHtml(currentUser.email||'')}">${escapeHtml(currentUser.email||'')}</div><button class="account-signout" data-action="signout">${icon('back',16)} Odhlásit se</button></div>
   `;
@@ -1286,16 +1306,16 @@ function openEditClassModal(oldName){
     <div class="class-icon-field">
       <div><p class="class-field-label">Ikona předmětu</p>${emojiPickerMarkup(currentIcon, 'editClassEmojiPicker', 'editClassIcon')}</div>
     </div>
-    <button type="button" class="pill-toggle" id="editSubjectVisibility"></button>
     <p class="class-field-label" style="margin-top:16px">Sety v tomto předmětu</p>
     <div class="class-set-combobox" id="classSetCombobox">
       <input class="field-box class-set-search" id="classSetSearch" placeholder="Vyhledat sadu podle názvu..." autocomplete="off">
-      <button type="button" class="class-set-toggle" id="classSetToggle" aria-label="Rozbalit seznam sad">⌄</button>
+      <button type="button" class="class-set-toggle" id="classSetToggle" aria-label="Rozbalit seznam sad" aria-expanded="false" aria-controls="classSetPicker">⌄</button>
       <div class="class-set-list" id="classSetPicker">
         ${sortedSets.length ? sortedSets.map(set => `<label class="class-set-option"><input type="checkbox" data-class-set="${escapeHtml(set.id)}" ${set.className===oldName?'checked':''}><span>${escapeHtml(set.title || 'Bez názvu')}</span></label>`).join('') : '<span class="class-icon-hint">Zatím nemáš žádné sady.</span>'}
       </div>
     </div>
     <div class="class-modal-actions">
+      <button type="button" class="pill-toggle" id="editSubjectVisibility"></button>
       <button class="btn btn-ghost" data-close>Zrušit</button>
       <button class="btn btn-primary" id="saveClassEdit">Uložit změny</button>
     </div>
@@ -1313,7 +1333,8 @@ function openEditClassModal(oldName){
   const setToggle = document.getElementById('classSetToggle');
   const toggleSetPicker = (open) => {
     setPicker.classList.toggle('open', open);
-    setToggle.textContent = open ? '⌃' : '⌄';
+    setCombobox.classList.toggle('open', open);
+    setToggle.setAttribute('aria-expanded',String(open));
   };
   setSearch.onfocus = () => toggleSetPicker(true);
   setToggle.onclick = (e) => { e.stopPropagation(); toggleSetPicker(!setPicker.classList.contains('open')); };
@@ -1410,13 +1431,13 @@ function renderHome(){
         <h1 class="page-title">Vítej zpátky 👋</h1>
         <p class="page-sub">Pokračuj v učení nebo si vytvoř novou sadu kartiček.</p>
       </div>
-      <button class="btn btn-primary" id="createBtn">${icon('plus',18)} Vytvořit sadu</button>
+      <div class="home-header-actions"><div class="sort-switch" aria-label="Zobrazení setů"><button data-home-view="grid" class="${state.libraryView==='grid'?'active':''}">Bloky</button><button data-home-view="list" class="${state.libraryView==='list'?'active':''}">Řádky</button></div><button class="btn btn-primary" id="createBtn">${icon('plus',18)} Vytvořit sadu</button></div>
     </div>
-    ${state.activeClassFilter ? `<section class="home-section active-class-section"><div class="home-section-head"><h2 class="page-title" style="font-size:22px;margin:0">${classIcon(state.activeClassFilter)} ${escapeHtml(state.activeClassFilter)}</h2><button class="home-more" id="clearClassFilter">Zrušit výběr</button></div><div class="set-grid home-set-grid" id="activeClassGrid"></div></section>` : ''}
+    ${state.activeClassFilter ? `<section class="home-section active-class-section"><div class="home-section-head"><h2 class="page-title" style="font-size:22px;margin:0">${classIcon(state.activeClassFilter)} ${escapeHtml(state.activeClassFilter)}</h2><button class="home-more" id="clearClassFilter">Zrušit výběr</button></div><div class="set-grid home-set-grid ${state.libraryView==='list'?'list-view':''}" id="activeClassGrid"></div></section>` : ''}
     ${ recent.length || recentClassNames.length ? `
-      ${continueSets.length ? `<section class="home-section"><div class="home-section-head"><h3 class="home-section-title">Pokračovat ve studování</h3>${continueSets.length>6?'<button class="home-more" id="continueMore">Zobrazit vše</button>':''}</div><div class="set-grid home-set-grid" id="continueGrid"></div></section>` : ''}
+      ${continueSets.length ? `<section class="home-section"><div class="home-section-head"><h3 class="home-section-title">Pokračovat ve studování</h3>${continueSets.length>6?'<button class="home-more" id="continueMore">Zobrazit vše</button>':''}</div><div class="set-grid home-set-grid ${state.libraryView==='list'?'list-view':''}" id="continueGrid"></div></section>` : ''}
       <section class="home-section"><div class="home-section-head"><h3 class="home-section-title">Nedávné předměty</h3></div><div class="home-class-grid" id="recentClasses"></div></section>
-      ${recent.length ? '<section class="home-section"><div class="home-section-head"><h3 class="home-section-title">Nedávné sady</h3></div><div class="set-grid home-set-grid" id="recentGrid"></div></section>' : ''}` :
+      ${recent.length ? `<section class="home-section"><div class="home-section-head"><h3 class="home-section-title">Nedávné sady</h3></div><div class="set-grid home-set-grid ${state.libraryView==='list'?'list-view':''}" id="recentGrid"></div></section>` : ''}` :
       `<div class="empty-state">
         <div style="font-size:34px">📚</div>
         <h3>Zatím žádné kartičky</h3>
@@ -1426,12 +1447,17 @@ function renderHome(){
     }
   `;
   wrap.querySelector('#createBtn').onclick = startCreate;
+  wrap.querySelectorAll('[data-home-view]').forEach(button => button.onclick = () => { state.libraryView = button.dataset.homeView; render(); });
   const clearClassFilter = wrap.querySelector('#clearClassFilter');
   if(clearClassFilter) clearClassFilter.onclick = () => { state.activeClassFilter = null; render(); };
   const activeClassGrid = wrap.querySelector('#activeClassGrid');
   if(activeClassGrid){
     if(activeClassSets.length) activeClassSets.forEach(set => activeClassGrid.appendChild(renderSetCard(set)));
-    else activeClassGrid.innerHTML = '<div class="empty-state"><h3>Předmět zatím nemá žádné sety</h3><p>Přidej existující set nebo vytvoř nový.</p></div>';
+    else activeClassGrid.innerHTML = `<div class="empty-state"><h3>Tento předmět je prázdný</h3><p>Vytvoř nový set, nebo přidej existující set do předmětu.</p><div class="subject-empty-actions"><button class="btn btn-primary" id="createSubjectSet">${icon('plus',18)} Vytvořit set</button><button class="btn btn-ghost" id="addExistingSubjectSet">${icon('folder',17)} Přidat existující</button></div></div>`;
+    const createSubjectSet = activeClassGrid.querySelector('#createSubjectSet');
+    if(createSubjectSet) createSubjectSet.onclick = () => startCreate(state.activeClassFilter);
+    const addExistingSubjectSet = activeClassGrid.querySelector('#addExistingSubjectSet');
+    if(addExistingSubjectSet) addExistingSubjectSet.onclick = () => openEditClassModal(state.activeClassFilter);
   }
   const emptyBtn = wrap.querySelector('#emptyCreateBtn');
   if(emptyBtn) emptyBtn.onclick = startCreate;
@@ -1471,24 +1497,26 @@ function renderLibrary(){
         <h1 class="page-title">${state.activeClassFilter ? escapeHtml(state.activeClassFilter) : 'Vaše knihovna'}</h1>
         <p class="page-sub">${sorted.length} ${sorted.length===1?'sada kartiček':'sad kartiček'}</p>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="library-toolbar">
+        <div class="sort-switch" aria-label="Zobrazení setů"><button data-view="grid" class="${state.libraryView==='grid'?'active':''}">Bloky</button><button data-view="list" class="${state.libraryView==='list'?'active':''}">Řádky</button></div>
         <div class="sort-switch" aria-label="Řazení sad"><button data-sort="updated" class="${state.librarySort==='updated'?'active':''}">Nedávné</button><button data-sort="title" class="${state.librarySort==='title'?'active':''}">Abecedně</button><button data-sort="created" class="${state.librarySort==='created'?'active':''}">Datum vytvoření</button></div>
         <button class="btn btn-primary" id="createBtn">${icon('plus',18)} Vytvořit</button>
       </div>
     </div>
-    <div class="set-grid" id="grid"></div>
+    <div class="set-grid library-grid ${state.libraryView==='list'?'list-view':''}" id="grid"></div>
   `;
   wrap.querySelector('#createBtn').onclick = startCreate;
+  wrap.querySelectorAll('[data-view]').forEach(button => button.onclick = () => { state.libraryView = button.dataset.view; render(); });
   wrap.querySelectorAll('[data-sort]').forEach(button => button.onclick = () => { state.librarySort = button.dataset.sort; render(); });
   const grid = wrap.querySelector('#grid');
   if(sorted.length === 0){
-    grid.outerHTML = `<div class="empty-state">
+    grid.innerHTML = `<div class="empty-state">
       <div style="font-size:34px">🗂️</div>
       <h3>Nic tu není</h3>
       <p>Vytvoř svou první sadu kartiček.</p>
       <button class="btn btn-primary" id="emptyCreateBtn2">${icon('plus',18)} Vytvořit sadu</button>
     </div>`;
-    wrap.querySelector('#emptyCreateBtn2').onclick = startCreate;
+    grid.querySelector('#emptyCreateBtn2').onclick = startCreate;
   } else {
     sorted.forEach(s => grid.appendChild(renderSetCard(s)));
   }
@@ -1680,8 +1708,8 @@ function renderSetCard(s){
 /* ============================= CREATE / EDIT ============================= */
 let draft = null; // { id, title, description, subjectCode, isPublic, className, cards:[...] }
 
-function startCreate(){
-  draft = { id: uid(), title:'', description:'', subjectCode:'', isPublic:false, className:'', cards:[emptyCard(), emptyCard()] };
+function startCreate(subjectName=''){
+  draft = { id: uid(), title:'', description:'', subjectCode:'', isPublic:false, className:subjectName, cards:[emptyCard(), emptyCard()] };
   state.editingSetId = null;
   state.view = 'create';
   render();
