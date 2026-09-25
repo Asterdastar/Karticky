@@ -486,6 +486,7 @@
   .done-panel .emoji{ font-size:44px; margin-bottom:10px; }
   .done-panel h2{ margin:0 0 8px; font-size:24px; }
   .done-panel p{ color:var(--text-dim); margin:0 0 26px; }
+  .done-actions{ display:flex; gap:10px; justify-content:center; }
 
   /* ---------- Modal ---------- */
   .modal-overlay{
@@ -714,6 +715,9 @@
     .market-subject-set-row{ align-items:flex-start; flex-direction:column; }
     .market-subject-set-actions{ width:100%; }
     .market-subject-set-actions .btn{ flex:1; justify-content:center; }
+    .done-panel{ width:100%; padding:28px 18px; }
+    .done-actions{ width:min(100%,380px); margin:0 auto; flex-direction:column; }
+    .done-actions .btn{ width:100%; min-height:46px; justify-content:center; white-space:normal; }
   }
   @media (max-width: 460px){
     .home-set-grid, .home-class-grid{ grid-template-columns:1fr; }
@@ -2236,7 +2240,7 @@ function renderStudy(){
         <div class="emoji">🎉</div>
         <h2>Skvělá práce!</h2>
         <p>Prošel(a) jsi všechny kartičky v této sadě.</p>
-        <div style="display:flex;gap:10px;justify-content:center">
+        <div class="done-actions">
           ${canPracticeWrong ? '<button class="btn btn-ghost" id="wrongBtn">Procvičit, co neumím</button>' : ''}
           <button class="btn btn-ghost" id="restartBtn2">Začít znovu</button>
           <button class="btn btn-primary" id="libBtn">Zpět do knihovny</button>
