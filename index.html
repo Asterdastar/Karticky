@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kartičky</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f0c22;
+    --bg-soft:#13102a;
+    --sidebar:#0a0818;
+    --panel:#1a1738;
+    --panel-2:#211d46;
+    --field:#1e1a42;
+    --field-border:#332e63;
+    --border:#26224a;
+    --accent:#5b5ff2;
+    --accent-hover:#7276ff;
+    --accent-soft:rgba(91,95,242,0.16);
+    --text:#f2f1fa;
+    --text-dim:#a8a4cb;
+    --text-faint:#716d94;
+    --danger:#f2703c;
+    --success:#3ecf8e;
+    --star:#f5c451;
+    --radius-lg:18px;
+    --radius-md:12px;
+    --radius-sm:8px;
+    --sidebar-w:240px;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Plus Jakarta Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100%;
+  }
+  ::selection{ background:var(--accent); color:#fff; }
+  button{ font-family:inherit; }
+  input, textarea, select{ font-family:inherit; }
+  .app{
+    display:flex;
+    min-height:100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:var(--sidebar-w);
+    flex:0 0 var(--sidebar-w);
+    background:var(--sidebar);
+    border-right:1px solid var(--border);
+    padding:20px 14px 24px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
+  }
+  .sidebar.hidden-study{ display:none; }
+  .brand-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:6px 10px 18px;
+  }
+  .brand-mark{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:800;
+    font-size:17px;
+    letter-spacing:-0.02em;
+  }
+  .brand-mark .logo-dot{
+    width:32px;height:32px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent),#9b6bff);
+    display:flex;align-items:center;justify-content:center;
+    font-size:17px;
+    flex:0 0 auto;
+  }
+  .icon-btn{
+    width:34px;height:34px;
+    border-radius:10px;
+    border:none;
+    background:transparent;
+    color:var(--text-dim);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .icon-btn:hover{ background:var(--panel-2); color:var(--text); }
+
+  .nav-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 12px;
+    border-radius:12px;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-weight:600;
+    font-size:14.5px;
+    cursor:pointer;
+    border:none;
+    background:transparent;
+    width:100%;
+    text-align:left;
+  }
+  .nav-item svg{ flex:0 0 auto; opacity:.9; }
+  .nav-item:hover{ background:var(--panel-2); color:var(--text); }
+  .nav-item.active{ background:var(--panel-2); color:var(--text); }
+  .nav-item .badge{
+    margin-left:auto;
+    background:var(--accent);
+    color:#fff;
+    font-size:10.5px;
+    font-weight:700;
+    padding:1px 6px;
+    border-radius:20px;
+  }
+
+  .sidebar-section-label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--text-faint);
+    font-weight:700;
+    padding:16px 12px 6px;
+  }
+  .sidebar-divider{
+    height:1px;
+    background:var(--border);
+    margin:10px 4px;
+  }
+  .class-item{
+    display:flex;align-items:center;gap:12px;
+    padding:9px 12px;border-radius:12px;
+    font-size:14px; font-weight:600; color:var(--text-dim);
+    cursor:pointer; border:none; background:transparent; width:100%; text-align:left;
+  }
+  .class-item:hover, .class-item.active{ background:var(--panel-2); color:var(--text); }
+  .class-item-wrap{ display:flex; align-items:center; gap:3px; }
+  .class-item-wrap .class-item{ flex:1; min-width:0; }
+  .class-icon{ width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; font-size:16px; flex:0 0 auto; }
+  .class-actions{ display:flex; opacity:0; transition:opacity .15s ease; }
+  .class-item-wrap:hover .class-actions, .class-item-wrap:focus-within .class-actions{ opacity:1; }
+  .class-actions button{ width:26px; height:26px; border:0; border-radius:7px; background:transparent; color:var(--text-faint); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .class-actions button:hover{ background:var(--panel-2); color:var(--text); }
+
+  /* ---------- Main ---------- */
+  .main{
+    flex:1;
+    min-width:0;
+    padding:28px 36px 60px;
+  }
+  .main.study-main{ padding:0; display:flex; flex-direction:column; min-height:100vh; }
+  .main:not(.study-main) > *{ width:100%; max-width:1100px; margin-left:auto; margin-right:auto; }
+
+  .page-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:20px;
+    margin-bottom:28px;
+    flex-wrap:wrap;
+  }
+  .page-title{
+    font-size:28px;
+    font-weight:800;
+    letter-spacing:-0.02em;
+    margin:0 0 6px;
+  }
+  .page-sub{
+    color:var(--text-dim);
+    font-size:14.5px;
+    margin:0;
+    max-width:520px;
+  }
+  .btn{
+    border:none;
+    border-radius:12px;
+    padding:11px 20px;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition:transform .08s ease, background .15s ease, box-shadow .15s ease;
+    white-space:nowrap;
+  }
+  .btn:active{ transform:scale(0.97); }
+  .btn-primary{ background:var(--accent); color:#fff; box-shadow:0 6px 18px -6px rgba(91,95,242,.65); }
+  .btn-primary:hover{ background:var(--accent-hover); }
+  .btn-ghost{ background:var(--panel-2); color:var(--text); }
+  .btn-ghost:hover{ background:#2b2660; }
+  .btn-outline{ background:transparent; color:var(--text-dim); border:1px solid var(--border); }
+  .btn-outline:hover{ color:var(--text); border-color:var(--field-border); }
+  .btn-danger-text{ background:transparent; color:var(--danger); padding:8px 10px; }
+  .btn-sm{ padding:7px 13px; font-size:12.5px; border-radius:9px; }
+
+  /* library grid */
+  .set-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(255px, 1fr));
+    gap:16px;
+  }
+  .set-card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:18px;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    min-height:150px;
+    transition:border-color .15s ease, transform .12s ease;
+    position:relative;
+  }
+  .set-card:hover{ border-color:var(--field-border); transform:translateY(-2px); }
+  .set-card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .set-card-title{ font-weight:700; font-size:15.5px; line-height:1.3; margin:0; }
+  .set-card-desc{ color:var(--text-dim); font-size:13px; line-height:1.5; margin:0; flex:1; overflow:hidden; display:-webkit-box; line-clamp:2; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .set-card-meta{ display:flex; align-items:center; gap:10px; font-size:12px; color:var(--text-faint); font-weight:600; }
+  .set-card-meta-line{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .set-card-tag{ background:var(--field); border-radius:20px; padding:2px 9px; color:var(--text-dim); }
+  .set-card-actions{ display:flex; gap:6px; opacity:0; transition:opacity .15s ease; }
+  .set-card:hover .set-card-actions{ opacity:1; }
+  .set-card-actions button{
+    width:28px;height:28px;border-radius:8px;border:none;background:var(--field);
+    color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .set-card-actions button:hover{ background:#2b2660; color:var(--text); }
+
+  .empty-state{
+    border:1.5px dashed var(--border);
+    border-radius:var(--radius-lg);
+    padding:60px 30px;
+    text-align:center;
+    color:var(--text-dim);
+    max-width:760px;
+    margin:0 auto;
+  }
+  .empty-state h3{ color:var(--text); margin:14px 0 6px; font-size:18px; }
+  .empty-state p{ margin:0 0 18px; font-size:14px; }
+
+  /* ---------- Create page ---------- */
+  .create-wrap{ max-width:900px; width:100%; margin:0 auto; }
+  .create-topbar{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; gap:14px; flex-wrap:wrap;
+  }
+  .pill-toggle{
+    display:inline-flex; align-items:center; gap:7px;
+    background:var(--field); border:1px solid var(--field-border);
+    color:var(--text-dim); font-weight:700; font-size:12.5px;
+    padding:7px 13px; border-radius:30px; cursor:pointer;
+  }
+  .pill-toggle:hover{ color:var(--text); }
+
+  .field-box{
+    background:var(--field);
+    border:1px solid var(--field-border);
+    border-radius:var(--radius-md);
+    padding:14px 16px;
+    width:100%;
+    color:var(--text);
+    font-size:15px;
+    margin-bottom:12px;
+    outline:none;
+    resize:none;
+  }
+  .field-box::placeholder{ color:var(--text-faint); }
+  .field-box:focus{ border-color:var(--accent); }
+  textarea.field-box{ min-height:56px; font-family:inherit; }
+  #titleInput{ font-size:19px; font-weight:700; }
+  .class-field{ margin-bottom:12px; }
+  .class-field-label{ display:block; margin:0 0 7px 3px; color:var(--text-faint); font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+  .class-select{ margin:0; }
+
+  .toolbar-row{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    margin:18px 0 14px; flex-wrap:wrap;
+  }
+  .toolbar-left{ display:flex; gap:10px; flex-wrap:wrap; }
+  .toolbar-right{ display:flex; align-items:center; gap:8px; }
+  .chip-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    background:var(--panel-2); border:none; color:var(--text);
+    font-weight:700; font-size:13px; padding:9px 15px; border-radius:24px; cursor:pointer;
+  }
+  .chip-btn:hover{ background:#2b2660; }
+  .chip-lock{
+    background:var(--star); color:#3a2c00; width:18px;height:18px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center; font-size:10px;
+  }
+  .suggestions-toggle{ display:flex; align-items:center; gap:9px; font-size:13.5px; font-weight:700; color:var(--text-dim); }
+
+  .switch{
+    position:relative; width:38px; height:22px; border-radius:20px; background:var(--field-border);
+    cursor:pointer; flex:0 0 auto; transition:background .15s ease; border:none;
+  }
+  .switch.on{ background:var(--accent); }
+  .switch .knob{
+    position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff;
+    transition:left .15s ease;
+  }
+  .switch.on .knob{ left:18px; }
+
+  .card-row{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:18px 18px 14px;
+    margin-bottom:16px;
+    cursor:grab;
+    transition:transform .18s ease, opacity .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  .card-row.dragging{ opacity:.45; transform:scale(.98) rotate(1deg); box-shadow:0 14px 30px rgba(0,0,0,.28); cursor:grabbing; }
+  .card-row.drag-over{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft); transform:translateY(6px); }
+  .card-row-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .card-row-num{ font-weight:800; font-size:15px; color:var(--text-dim); }
+  .card-row-tools{ display:flex; align-items:center; gap:4px; }
+  .card-row-tools button{
+    width:30px;height:30px; border-radius:8px; border:none; background:transparent; color:var(--text-faint);
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .card-row-tools button:hover{ background:var(--field); color:var(--text); }
+  .card-row-fields{ display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:stretch; }
+  @media (max-width: 760px){ .card-row-fields{ grid-template-columns:1fr; } }
+  .card-field{ display:flex; flex-direction:column; }
+  .card-field textarea{
+    background:var(--field); border:1px solid var(--field-border); border-radius:var(--radius-sm);
+    color:var(--text); padding:12px 14px; font-size:14.5px; line-height:1.55; resize:none; min-height:56px; outline:none;
+  }
+  .card-field textarea:focus{ border-color:var(--accent); }
+  .card-field-label{ font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint); font-weight:700; margin-top:6px; }
+  .def-image{ margin-top:10px; }
+  .term-image{ margin-top:10px; }
+  .format-toolbar{ display:flex; gap:4px; margin:8px 0 5px; }
+  .format-btn{ min-width:28px; height:26px; padding:0 7px; border:1px solid var(--field-border); border-radius:7px; background:var(--field); color:var(--text-dim); cursor:pointer; font-weight:800; font-size:12px; }
+  .format-btn:hover{ border-color:var(--accent); color:var(--text); background:var(--panel-2); }
+  .rich-editor{ min-height:56px; padding:12px 14px; border:1px solid var(--field-border); border-radius:var(--radius-sm); background:var(--field); color:var(--text); font-size:14.5px; line-height:1.55; outline:none; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .rich-editor:focus{ border-color:var(--accent); }
+  .rich-editor:empty::before{ content:attr(data-placeholder); color:var(--text-faint); pointer-events:none; }
+
+  .image-drop{
+    width:100%; min-height:72px; border-radius:var(--radius-sm);
+    border:1.5px dashed var(--field-border);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:4px; color:var(--text-faint); font-size:11px; font-weight:700; cursor:pointer;
+    background:var(--field); position:relative; overflow:hidden;
+  }
+  .image-drop:hover{ border-color:var(--accent); color:var(--text-dim); }
+  .image-drop img{ width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }
+  .image-drop .remove-img{
+    position:absolute; top:3px; right:3px; width:18px;height:18px;border-radius:50%;
+    background:rgba(15,12,34,.85); color:#fff; display:flex;align-items:center;justify-content:center;
+    font-size:11px; z-index:2; cursor:pointer;
+  }
+
+  .add-card-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; padding:15px; border-radius:var(--radius-lg);
+    border:1.5px dashed var(--border); background:transparent; color:var(--text-dim);
+    font-weight:700; font-size:14px; cursor:pointer; margin:6px 0 30px;
+  }
+  .add-card-btn:hover{ border-color:var(--accent); color:var(--text); }
+
+  .create-footer{ display:flex; justify-content:flex-end; padding-bottom:30px; }
+
+  /* ---------- Study page ---------- */
+  .study-topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 30px; border-bottom:1px solid var(--border); gap:14px; flex-wrap:wrap;
+  }
+  .study-topbar-left{ display:flex; align-items:center; gap:14px; min-width:0; }
+  .study-title{ font-weight:800; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:340px; }
+  .study-body{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:30px 24px 10px; gap:18px;
+  }
+  .study-stage{ width:100%; max-width:960px; }
+
+  .flash-scene{ perspective:1800px; width:100%; }
+  .flash-card{
+    position:relative;
+    width:100%;
+    height:520px;
+    border-radius:var(--radius-lg);
+    background:var(--panel);
+    border:1px solid var(--border);
+    cursor:pointer;
+    transform-style:preserve-3d;
+    transition:transform .45s cubic-bezier(.4,.2,.2,1);
+  }
+  .flash-card.size-small{ height:380px; }
+  .flash-card.size-medium{ height:520px; }
+  .flash-card.size-large{ height:680px; }
+  .flash-card.flipped{ transform:rotateX(180deg); }
+  .flash-card.no-flip{ transition:none; }
+  .flash-card.swipe-left{ animation:swipe-left .28s ease-in forwards; }
+  .flash-card.swipe-right{ animation:swipe-right .28s ease-in forwards; }
+  @keyframes swipe-left{ to{ transform:translateX(-115%) rotate(-12deg); opacity:0; } }
+  @keyframes swipe-right{ to{ transform:translateX(115%) rotate(12deg); opacity:0; } }
+  .flash-face{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    backface-visibility:hidden;
+    border-radius:var(--radius-lg);
+    padding:26px;
+  }
+  .flash-face.back{ transform:rotateX(180deg); }
+  .flash-face-top{ display:flex; align-items:center; justify-content:space-between; }
+  .hint-btn{
+    display:inline-flex; align-items:center; gap:7px; background:transparent; border:none;
+    color:var(--text-dim); font-weight:700; font-size:13px; cursor:pointer; padding:6px 4px;
+  }
+  .hint-btn:hover{ color:var(--star); }
+  .star-btn{ background:transparent; border:none; color:var(--text-faint); cursor:pointer; padding:6px; }
+  .star-btn.active{ color:var(--star); }
+  .flash-face-content{
+    flex:1; display:flex; align-items:center; justify-content:center; text-align:center;
+    font-size:clamp(20px,3vw,30px); font-weight:700; line-height:1.4; padding:10px 20px; gap:16px; flex-direction:column;
+  }
+  .flash-face-content img{ max-width:100%; max-height:300px; border-radius:10px; object-fit:contain; cursor:zoom-in; transition:transform .15s ease; }
+  .flash-face-content img:hover{ transform:scale(1.03); }
+  .flash-hint{ font-size:14px; color:var(--text-dim); font-weight:600; margin-top:6px; }
+  .flash-shortcut-bar{
+    background:#c9cbff; color:#161141; border-radius:0 0 var(--radius-lg) var(--radius-lg);
+    text-align:center; padding:11px; font-weight:700; font-size:13px;
+    display:flex; align-items:center; justify-content:center; gap:6px; margin-top:-1px;
+  }
+  .flash-shortcut-bar kbd{ background:#161141; color:#fff; padding:2px 8px; border-radius:6px; font-size:11.5px; }
+
+  .study-controls{
+    display:flex; align-items:center; justify-content:space-between; width:100%; max-width:960px;
+    flex-wrap:wrap; gap:14px; padding:6px 4px 26px;
+  }
+  .track-toggle{ display:flex; align-items:center; gap:10px; font-weight:700; font-size:13.5px; color:var(--text-dim); }
+  .control-center{ display:flex; align-items:center; gap:18px; }
+  .round-btn{
+    width:46px;height:46px;border-radius:50%; border:none; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:transform .1s ease;
+  }
+  .round-btn:active{ transform:scale(0.92); }
+  .round-btn.no{ background:#3a2317; color:var(--danger); }
+  .round-btn.no:hover{ background:#4a2c1c; }
+  .round-btn.yes{ background:#173a2c; color:var(--success); }
+  .round-btn.yes:hover{ background:#1c4a37; }
+  .counter{ font-weight:800; font-size:14.5px; color:var(--text-dim); min-width:52px; text-align:center; }
+  .control-right{ display:flex; align-items:center; gap:6px; }
+  .control-right button{
+    width:40px;height:40px;border-radius:50%; border:1.5px solid var(--border); background:transparent;
+    color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .control-right button:hover{ border-color:var(--accent); color:var(--text); }
+
+  .done-panel{
+    text-align:center; padding:50px 30px; max-width:480px; margin:0 auto;
+  }
+  .done-panel .emoji{ font-size:44px; margin-bottom:10px; }
+  .done-panel h2{ margin:0 0 8px; font-size:24px; }
+  .done-panel p{ color:var(--text-dim); margin:0 0 26px; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(6,5,16,.6); backdrop-filter:blur(2px);
+    display:flex; align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .modal{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg);
+    width:100%; max-width:460px; padding:26px 26px 20px; max-height:88vh; overflow-y:auto;
+  }
+  .modal-wide{ max-width:640px; }
+  .class-modal{ max-width:420px; }
+  .class-modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+  .class-icon-field{ display:flex; align-items:center; gap:10px; }
+  .class-icon-input{ width:64px; text-align:center; font-size:22px; padding:8px; }
+  .class-icon-hint{ color:var(--text-faint); font-size:12px; line-height:1.4; }
+  .emoji-picker{ display:flex; flex-wrap:wrap; gap:7px; }
+  .emoji-option{ width:38px; height:38px; border:1px solid var(--field-border); border-radius:10px; background:var(--field); font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .emoji-option:hover, .emoji-option.selected{ border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 2px rgba(91,95,242,.12); }
+  .class-choice-list{ display:flex; flex-direction:column; gap:7px; margin:16px 0 4px; }
+  .class-choice{ width:100%; display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--field-border); border-radius:10px; background:var(--field); color:var(--text); cursor:pointer; text-align:left; font-family:inherit; font-size:13px; font-weight:600; }
+  .class-choice:hover, .class-choice.selected{ border-color:var(--accent); background:var(--accent-soft); }
+  .class-choice .class-icon{ font-size:19px; }
+  .class-set-list{ display:flex; flex-direction:column; gap:0; max-height:220px; overflow-y:auto; margin:14px 0 4px; background:var(--field); border:1px solid var(--field-border); border-radius:12px; padding:5px 8px; box-shadow:0 12px 26px rgba(0,0,0,.18); }
+  .class-set-option{ display:flex; align-items:center; gap:9px; padding:10px 8px; border:0; border-bottom:1px solid var(--border); border-radius:0; color:var(--text-dim); font-size:13px; cursor:pointer; }
+  .class-set-option:last-child{ border-bottom:0; }
+  .class-set-option:hover{ background:var(--panel-2); color:var(--text); }
+  .class-set-option input{ accent-color:var(--accent); }
+  .class-set-combobox{ position:relative; margin-bottom:8px; }
+  .class-set-search{ margin:0; padding-right:42px; border-radius:10px; background:var(--field); }
+  .class-set-toggle{ position:absolute; top:5px; right:5px; width:32px; height:32px; border:0; border-radius:8px; background:transparent; color:var(--text-dim); cursor:pointer; font-size:18px; line-height:1; }
+  .class-set-toggle:hover{ background:var(--panel-2); color:var(--text); }
+  .class-set-list{ display:none; }
+  .class-set-list.open{ display:flex; position:absolute; z-index:20; top:calc(100% + 4px); left:0; right:0; margin:0; }
+  .home-set-grid{ grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  .home-set-grid .set-card:nth-child(n+7){ display:none; }
+  .home-set-grid.expanded .set-card:nth-child(n+7){ display:flex; }
+  .home-section{ margin-top:28px; }
+  .home-section-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .home-section-title{ margin:0; color:var(--text-dim); font-size:15px; }
+  .home-more{ border:0; background:none; color:var(--accent-hover); font:700 12px inherit; cursor:pointer; padding:4px; }
+  .home-class-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; }
+  .home-class-card{ display:flex; align-items:center; gap:10px; padding:14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-md); color:var(--text); cursor:pointer; text-align:left; }
+  .home-class-card:hover{ border-color:var(--field-border); background:var(--panel-2); }
+  .home-class-card small{ display:block; color:var(--text-faint); margin-top:3px; }
+  .sort-switch{ display:inline-flex; gap:4px; padding:4px; border:1px solid var(--border); border-radius:12px; background:var(--panel); }
+  .sort-switch button{ border:0; border-radius:8px; padding:7px 10px; background:transparent; color:var(--text-dim); font:700 12px inherit; cursor:pointer; }
+  .sort-switch button.active, .sort-switch button:hover{ background:var(--panel-2); color:var(--text); }
+  .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .modal-head h2{ font-size:22px; margin:0; font-weight:800; letter-spacing:-0.01em; }
+  .modal-close{ width:32px;height:32px;border-radius:50%; border:none; background:var(--field); color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .modal-close:hover{ background:#2b2660; color:var(--text); }
+
+  .opt-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:18px; padding:14px 0; border-bottom:1px solid var(--border); }
+  .opt-row:last-of-type{ border-bottom:none; }
+  .opt-row-text{ flex:1; }
+  .opt-row-title{ font-weight:700; font-size:14.5px; margin:0 0 4px; }
+  .opt-row-desc{ font-size:12.5px; color:var(--text-dim); margin:0; line-height:1.5; }
+  .opt-select{
+    background:var(--field); border:1px solid var(--field-border); color:var(--text);
+    border-radius:10px; padding:9px 34px 9px 12px; min-width:145px; font-weight:700; font-size:13px; cursor:pointer; outline:none;
+    box-shadow:0 4px 12px rgba(0,0,0,.12);
+  }
+  .opt-select:hover, .opt-select:focus{ border-color:var(--accent); }
+  .setting-picker{ position:relative; min-width:150px; }
+  .setting-picker-current{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px; border:1px solid var(--field-border); border-radius:10px; background:var(--field); color:var(--text); font:700 13px inherit; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.12); }
+  .setting-picker-current:hover, .setting-picker.open .setting-picker-current{ border-color:var(--accent); background:var(--panel-2); }
+  .setting-picker-menu{ display:none; position:absolute; z-index:25; top:calc(100% + 5px); left:0; right:0; padding:5px; border:1px solid var(--field-border); border-radius:12px; background:var(--field); box-shadow:0 12px 26px rgba(0,0,0,.25); }
+  .setting-picker.open .setting-picker-menu{ display:flex; flex-direction:column; gap:2px; }
+  .setting-picker-option{ border:0; border-radius:8px; padding:9px 10px; background:transparent; color:var(--text-dim); text-align:left; font:700 13px inherit; cursor:pointer; }
+  .setting-picker-option:hover, .setting-picker-option.selected{ background:var(--accent-soft); color:var(--text); }
+  .kbd-list{ font-size:13px; color:var(--text-dim); display:flex; flex-direction:column; gap:8px; padding:6px 0 4px; }
+  .kbd-list div{ display:flex; justify-content:space-between; }
+  .kbd-list kbd{ background:var(--field); border:1px solid var(--field-border); padding:2px 8px; border-radius:6px; font-size:11.5px; color:var(--text); }
+  .image-lightbox{ position:fixed; inset:0; z-index:300; background:rgba(3,2,12,.82); display:flex; align-items:center; justify-content:center; padding:30px; cursor:zoom-out; }
+  .image-lightbox img{ max-width:92vw; max-height:88vh; object-fit:contain; border-radius:12px; box-shadow:0 20px 70px rgba(0,0,0,.6); cursor:default; }
+  .image-lightbox-close{ position:absolute; top:20px; right:20px; width:40px; height:40px; border:0; border-radius:50%; background:var(--panel-2); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .link-row{ padding:14px 0; font-weight:700; font-size:14px; cursor:pointer; }
+  .link-row.danger{ color:var(--danger); }
+  .link-row.muted{ color:var(--text-dim); border-top:1px solid var(--border); }
+  .link-row:hover{ opacity:.85; }
+
+  .import-textarea{ width:100%; min-height:180px; }
+  .import-opts{ display:flex; gap:20px; margin-bottom:14px; flex-wrap:wrap; }
+  .import-opts label{ font-size:12.5px; color:var(--text-dim); display:flex; flex-direction:column; gap:6px; font-weight:700; }
+  .import-opts select{ background:var(--field); border:1px solid var(--field-border); color:var(--text); border-radius:8px; padding:8px 10px; }
+
+  /* toast */
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    padding:13px 20px; border-radius:12px; font-weight:600; font-size:13.5px;
+    box-shadow:0 12px 30px -10px rgba(0,0,0,.5);
+    z-index:200; opacity:0; transition:opacity .2s ease, transform .2s ease; pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .back-link{
+    display:inline-flex; align-items:center; gap:6px; color:var(--text-dim); background:none; border:none;
+    cursor:pointer; font-weight:700; font-size:13.5px; padding:4px; margin-bottom:14px;
+  }
+  .back-link:hover{ color:var(--text); }
+
+  select.opt-select option{ background:var(--panel); }
+
+  .auth-screen{ min-height:100vh; display:grid; place-items:center; padding:24px; background:radial-gradient(ellipse at 50% 0%,rgba(91,95,242,.22),transparent 55%),var(--bg); }
+  .auth-panel{ width:min(100%,420px); padding:32px; border:1px solid var(--border); border-radius:18px; background:var(--panel); box-shadow:0 24px 70px rgba(0,0,0,.28); }
+  .auth-brand{ display:flex; align-items:center; gap:12px; margin-bottom:28px; font-size:19px; font-weight:800; }
+  .auth-panel h1{ margin:0 0 8px; font-size:24px; }
+  .auth-panel > p{ margin:0 0 24px; color:var(--text-dim); font-size:14px; line-height:1.55; }
+  .auth-form{ display:flex; flex-direction:column; gap:14px; }
+  .auth-form label{ display:flex; flex-direction:column; gap:7px; color:var(--text-dim); font-size:12px; font-weight:700; }
+  .auth-form input{ width:100%; min-height:44px; padding:10px 12px; border:1px solid var(--field-border); border-radius:9px; outline:none; background:var(--field); color:var(--text); font-size:14px; }
+  .auth-form input:focus{ border-color:var(--accent); }
+  .auth-form .btn{ justify-content:center; min-height:44px; margin-top:4px; }
+  .auth-message{ min-height:20px; color:var(--text-dim); font-size:13px; line-height:1.5; }
+  .auth-message.error{ color:#ff9b83; }
+  .auth-switch{ width:100%; margin-top:16px; border:0; background:none; color:var(--text-dim); cursor:pointer; font:600 13px inherit; }
+  .auth-switch:hover{ color:var(--text); }
+  .auth-config{ margin-top:18px!important; padding-top:16px; border-top:1px solid var(--border); font-size:12px!important; }
+  .account-block{ margin-top:auto; padding:14px 10px 0; border-top:1px solid var(--border); }
+  .account-email{ overflow:hidden; color:var(--text-faint); font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+  .account-signout{ display:flex; align-items:center; gap:9px; width:100%; margin-top:8px; padding:8px 0; border:0; background:none; color:var(--text-dim); cursor:pointer; font:600 13px inherit; text-align:left; }
+  .account-signout:hover{ color:var(--text); }
+
+  @media (max-width: 900px){
+    .sidebar{ display:none; }
+    .main{ padding:20px; }
+  }
+  @media (max-width: 700px){
+    .home-set-grid, .home-class-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  }
+  @media (max-width: 460px){
+    .home-set-grid, .home-class-grid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============================= STATE ============================= */
+const STORAGE_KEY = 'kartlicky_sets_v1';
+const CLASS_KEY = 'kartlicky_classes_v1';
+const CLASS_ICON_KEY = 'kartlicky_class_icons_v1';
+const PROGRESS_KEY = 'kartlicky_progress_v1';
+const SUPABASE_URL = 'sb_publishable_QhDs7AiYAueATMVJG3v7Ig_UlqX36yJ';
+const SUPABASE_ANON_KEY = 'sb_publishable_QhDs7AiYAueATMVJG3v7Ig_UlqX36yJ';
+const LEGACY_MIGRATED_KEY = 'kartlicky_supabase_legacy_migrated_v1';
+const CLASS_EMOJIS = ['📚','🧪','🌿','🧮','🎨','🌍','💬','🎵','⚽','💻','⭐','🧠'];
+
+let supabase = null;
+let currentUser = null;
+let authView = 'login';
+let cloudSaveTimer = null;
+let authReady = false;
+let authLoadId = 0;
+
+let state = {
+  view: 'home', // home | library | create | study
+  editingSetId: null,
+  activeClassFilter: null,
+  sets: [],
+  classes: ['Maturita'],
+  classIcons: {},
+  progress: {},
+  librarySort: 'updated',
+  study: null // { setId, queue:[idx], pointer, flipped, history:[], settings:{...}, starred:Set }
+};
+
+function loadData(payload=null, useLegacy=false){
+  if(payload){
+    state.sets = Array.isArray(payload.sets) ? payload.sets : [];
+    state.classes = Array.isArray(payload.classes) ? payload.classes : ['Maturita'];
+    state.classIcons = payload.classIcons && typeof payload.classIcons === 'object' ? payload.classIcons : {};
+    state.progress = payload.progress && typeof payload.progress === 'object' ? payload.progress : {};
+    return;
+  }
+  if(!useLegacy){
+    state.sets = [];
+    state.classes = ['Maturita'];
+    state.classIcons = {};
+    state.progress = {};
+    return;
+  }
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    state.sets = raw ? JSON.parse(raw) : [];
+  }catch(e){ state.sets = []; }
+  try{
+    const rawC = localStorage.getItem(CLASS_KEY);
+    state.classes = rawC ? JSON.parse(rawC) : ['Maturita'];
+  }catch(e){ state.classes = ['Maturita']; }
+  try{
+    const rawIcons = localStorage.getItem(CLASS_ICON_KEY);
+    state.classIcons = rawIcons ? JSON.parse(rawIcons) : {};
+  }catch(e){ state.classIcons = {}; }
+  try{
+    const rawProgress = localStorage.getItem(PROGRESS_KEY);
+    state.progress = rawProgress ? JSON.parse(rawProgress) : {};
+  }catch(e){ state.progress = {}; }
+}
+function saveSets(){
+  scheduleCloudSave();
+}
+function saveClasses(){
+  scheduleCloudSave();
+}
+
+function saveClassIcons(){
+  scheduleCloudSave();
+}
+
+function saveProgress(){
+  scheduleCloudSave();
+}
+
+function scheduleCloudSave(){
+  if(!supabase || !currentUser) return;
+  const userId = currentUser.id;
+  const payload = JSON.parse(JSON.stringify({ sets:state.sets, classes:state.classes, classIcons:state.classIcons, progress:state.progress }));
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(async () => {
+    if(currentUser?.id !== userId) return;
+    const { error } = await supabase.from('flashcard_data').upsert({ user_id:userId, payload, updated_at:new Date().toISOString() });
+    if(error) showToast('Synchronizace se nezdařila: ' + error.message);
+  }, 500);
+}
+
+function renderAuth(message='', isError=false){
+  const app = document.getElementById('app');
+  const configured = !SUPABASE_URL.includes('YOUR_') && !SUPABASE_ANON_KEY.includes('YOUR_');
+  const signingUp = authView === 'signup';
+  app.innerHTML = `
+    <main class="auth-screen">
+      <section class="auth-panel">
+        <div class="auth-brand"><span class="logo-dot">🃏</span> Kartičky</div>
+        <h1>${signingUp?'Vytvořit účet':'Přihlášení'}</h1>
+        <p>${signingUp?'Založ si účet a měj své sady dostupné na každém zařízení.':'Přihlas se ke svým sadám kartiček.'}</p>
+        <form class="auth-form" id="authForm">
+          <label>E-mail<input id="authEmail" type="email" autocomplete="email" required></label>
+          <label>Heslo<input id="authPassword" type="password" autocomplete="${signingUp?'new-password':'current-password'}" minlength="6" required></label>
+          <div class="auth-message ${isError?'error':''}" role="status">${escapeHtml(message)}</div>
+          <button class="btn btn-primary" type="submit" ${configured?'':'disabled'}>${signingUp?'Vytvořit účet':'Přihlásit se'}</button>
+        </form>
+        <button class="auth-switch" id="authSwitch">${signingUp?'Už máš účet? Přihlásit se':'Nemáš účet? Vytvořit účet'}</button>
+        ${configured?'':'<p class="auth-config">Pro zapnutí přihlašování nastav v tomto HTML hodnoty SUPABASE_URL a SUPABASE_ANON_KEY a vytvoř tabulku podle návodu v odpovědi.</p>'}
+      </section>
+    </main>`;
+  document.getElementById('authSwitch').onclick = () => { authView = signingUp?'login':'signup'; renderAuth(); };
+  document.getElementById('authForm').onsubmit = async event => {
+    event.preventDefault();
+    if(!supabase){ renderAuth('Supabase není nastavený.', true); return; }
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const submit = document.querySelector('#authForm button[type="submit"]');
+    submit.disabled = true;
+    document.querySelector('.auth-message').textContent = 'Ověřuji údaje…';
+    const result = signingUp
+      ? await supabase.auth.signUp({ email, password })
+      : await supabase.auth.signInWithPassword({ email, password });
+    if(result.error){ renderAuth(result.error.message, true); return; }
+    if(signingUp && !result.data.session){
+      renderAuth('Účet je vytvořený. Potvrď registraci přes odkaz v e-mailu a potom se přihlas.');
+    }
+  };
+}
+
+async function activateSession(session){
+  const user = session?.user || null;
+  if(authReady && currentUser?.id === user?.id) return;
+  const loadId = ++authLoadId;
+  currentUser = user;
+  authReady = false;
+  if(!user){
+    loadData(null, false);
+    authReady = true;
+    render();
+    return;
+  }
+  const { data, error } = await supabase.from('flashcard_data').select('payload').eq('user_id', user.id).maybeSingle();
+  if(loadId !== authLoadId) return;
+  if(error){
+    loadData(null, false);
+    showToast('Načtení dat se nezdařilo: ' + error.message);
+  }else if(data?.payload){
+    loadData(data.payload);
+  }else{
+    const useLegacy = localStorage.getItem(LEGACY_MIGRATED_KEY) !== 'true';
+    loadData(null, useLegacy);
+    if(useLegacy){
+      localStorage.setItem(LEGACY_MIGRATED_KEY, 'true');
+      scheduleCloudSave();
+    }
+  }
+  authReady = true;
+  render();
+}
+
+async function initializeAuth(){
+  const configured = !SUPABASE_URL.includes('YOUR_') && !SUPABASE_ANON_KEY.includes('YOUR_');
+  if(!configured){
+    authReady = true;
+    renderAuth('');
+    return;
+  }
+  if(!window.supabase?.createClient){
+    authReady = true;
+    renderAuth('Knihovna Supabase se nenačetla. Zkontroluj připojení k internetu a obnov stránku.', true);
+    return;
+  }
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data, error } = await supabase.auth.getSession();
+  if(error){
+    authReady = true;
+    renderAuth(error.message, true);
+    return;
+  }
+  await activateSession(data.session);
+  supabase.auth.onAuthStateChange((_event, session) => {
+    setTimeout(() => activateSession(session), 0);
+  });
+}
+
+function uid(){ return 'id_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+
+/* ============================= HELPERS ============================= */
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+function icon(name, size=18){
+  const icons = {
+    menu:'<path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    search:'<circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    home:'<path d="M4 11.5L12 4l8 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+    folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+    bell:'<path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5 1.5 5h-15S6 13 6 9z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 18a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    users:'<circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="2"/><path d="M2.5 19c0-3 3-5 6.5-5s6.5 2 6.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 4.2a3 3 0 0 1 0 5.9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15.5 14.2c2.7.5 4.5 2.3 4.5 4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    plus:'<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    clock:'<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    trash:'<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    pencil:'<path d="M4 20l.9-3.6L16 5.4 18.6 8 7.5 19.1 4 20z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+    drag:'<circle cx="8" cy="6" r="1.3" fill="currentColor"/><circle cx="8" cy="12" r="1.3" fill="currentColor"/><circle cx="8" cy="18" r="1.3" fill="currentColor"/><circle cx="14" cy="6" r="1.3" fill="currentColor"/><circle cx="14" cy="12" r="1.3" fill="currentColor"/><circle cx="14" cy="18" r="1.3" fill="currentColor"/>',
+    image:'<rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="9.5" r="1.5" fill="currentColor"/><path d="M21 16l-5.5-5.5a1.5 1.5 0 0 0-2.1 0L4 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    x:'<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    check:'<path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
+    undo:'<path d="M8 7L4 11l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 11h10a6 6 0 0 1 0 12h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    shuffle:'<path d="M3 6h3.5L15 18h6M3 18h3.5L11 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 4l3 2-3 2M18 20l3-2-3-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    gear:'<circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="2"/><path d="M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M5.5 5.5l1.5 1.5M17 17l1.5 1.5M18.5 5.5L17 7M7 17l-1.5 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    expand:'<path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    bulb:'<path d="M9 18h6M10 21h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.3 1 2.1h5c0-.8.4-1.6 1-2.1A6 6 0 0 0 12 3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+    star:'<path d="M12 3.5l2.5 5.6 6 .6-4.5 4.1 1.3 6-5.3-3.1-5.3 3.1 1.3-6L3.5 9.7l6-.6L12 3.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+    back:'<path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+    speaker:'<path d="M4 9v6h4l5 4V5L8 9H4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M17 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    lock:'<rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="2"/>'
+  };
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">${icons[name]||''}</svg>`;
+}
+
+function escapeHtml(str){
+  return (str||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function classIcon(name){
+  return `<span class="class-icon" aria-hidden="true">${escapeHtml(state.classIcons[name] || '📚')}</span>`;
+}
+
+function formatDate(timestamp){
+  if(!timestamp) return 'neuvedeno';
+  return new Intl.DateTimeFormat('cs-CZ', { day:'numeric', month:'numeric', year:'numeric' }).format(new Date(timestamp));
+}
+
+function emojiPickerMarkup(selected, pickerId, inputId){
+  const choices = CLASS_EMOJIS.includes(selected) ? CLASS_EMOJIS : [selected, ...CLASS_EMOJIS];
+  return `<div class="emoji-picker" id="${pickerId}">${choices.map(emoji => `<button type="button" class="emoji-option ${emoji===selected?'selected':''}" data-emoji="${escapeHtml(emoji)}" aria-label="${escapeHtml(emoji)}">${escapeHtml(emoji)}</button>`).join('')}</div><input type="hidden" id="${inputId}" value="${escapeHtml(selected)}">`;
+}
+
+function bindEmojiPicker(pickerId, inputId){
+  const picker = document.getElementById(pickerId);
+  const input = document.getElementById(inputId);
+  picker.querySelectorAll('[data-emoji]').forEach(button => button.onclick = () => {
+    input.value = button.dataset.emoji;
+    picker.querySelectorAll('.emoji-option').forEach(option => option.classList.toggle('selected', option === button));
+  });
+}
+
+function sanitizeRichText(value){
+  const holder = document.createElement('div');
+  holder.innerHTML = value || '';
+  const allowed = new Set(['B','STRONG','I','EM','U','BR']);
+  const clean = node => Array.from(node.childNodes).forEach(child => {
+    if(child.nodeType !== Node.ELEMENT_NODE) return;
+    clean(child);
+    if(!allowed.has(child.tagName)){
+      while(child.firstChild) node.insertBefore(child.firstChild, child);
+      child.remove();
+    }else{
+      Array.from(child.attributes).forEach(attribute => child.removeAttribute(attribute.name));
+    }
+  });
+  clean(holder);
+  return holder.innerHTML;
+}
+
+function emptyCard(){ return { term:'', def:'', termImage:null, defImage:null }; }
+function emptyCardWithText(term, def){ return { term, def, termImage:null, defImage:null }; }
+
+function normalizeCard(card){
+  return {
+    ...card,
+    termImage: card.termImage || null,
+    defImage: card.defImage || card.image || null,
+  };
+}
+
+/* ============================= ROOT RENDER ============================= */
+function render(){
+  const app = document.getElementById('app');
+  if(!authReady){
+    app.innerHTML = '<main class="auth-screen"><section class="auth-panel"><div class="auth-brand"><span class="logo-dot">🃏</span> Kartičky</div><p>Načítám účet…</p></section></main>';
+    return;
+  }
+  if(!currentUser){ renderAuth(); return; }
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
+  app.innerHTML = '';
+
+  const isStudy = state.view === 'study';
+  if(!isStudy){
+    app.appendChild(renderSidebar());
+  }
+
+  const main = document.createElement('div');
+  main.className = 'main' + (isStudy ? ' study-main' : '');
+
+  if(state.view === 'home') main.appendChild(renderHome());
+  else if(state.view === 'library') main.appendChild(renderLibrary());
+  else if(state.view === 'create') main.appendChild(renderCreate());
+  else if(state.view === 'study') main.appendChild(renderStudy());
+
+  app.appendChild(main);
+  window.requestAnimationFrame(() => window.scrollTo(scrollX, scrollY));
+  if(!isStudy){
+    document.onkeydown = (e) => {
+      if(e.code === 'Escape'){ e.preventDefault(); handleEscape(); }
+    };
+  }
+}
+
+/* ============================= SIDEBAR ============================= */
+function renderSidebar(){
+  const el = document.createElement('div');
+  el.className = 'sidebar';
+  el.innerHTML = `
+    <div class="brand-row">
+      <div class="brand-mark"><span class="logo-dot">🃏</span> Kartičky</div>
+    </div>
+    <button class="nav-item ${state.view==='home'?'active':''}" data-nav="home">${icon('home')} Domů</button>
+    <button class="nav-item ${state.view==='library'?'active':''}" data-nav="library">${icon('folder')} Vaše knihovna</button>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">Vaše třídy</div>
+    ${state.classes.map(c => `<div class="class-item-wrap"><button class="class-item ${state.activeClassFilter===c?'active':''}" data-class="${escapeHtml(c)}">${classIcon(c)} <span>${escapeHtml(c)}</span></button><span class="class-actions"><button data-edit-class="${escapeHtml(c)}" title="Upravit třídu">${icon('pencil',13)}</button><button data-delete-class="${escapeHtml(c)}" title="Smazat třídu">${icon('trash',13)}</button></span></div>`).join('')}
+    <button class="nav-item" data-action="new-class">${icon('plus')} Nová třída</button>
+    <div class="account-block"><div class="account-email" title="${escapeHtml(currentUser.email||'')}">${escapeHtml(currentUser.email||'')}</div><button class="account-signout" data-action="signout">${icon('back',16)} Odhlásit se</button></div>
+  `;
+  el.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { state.activeClassFilter=null; state.view = b.dataset.nav; render(); });
+  el.querySelectorAll('[data-class]').forEach(b => b.onclick = () => {
+    state.activeClassFilter = state.activeClassFilter === b.dataset.class ? null : b.dataset.class;
+    state.view = 'home';
+    render();
+  });
+  el.querySelectorAll('[data-edit-class]').forEach(b => b.onclick = () => {
+    const oldName = b.dataset.editClass;
+    openEditClassModal(oldName);
+  });
+  el.querySelectorAll('[data-delete-class]').forEach(b => b.onclick = () => {
+    const name = b.dataset.deleteClass;
+    if(!confirm(`Smazat třídu „${name}“? Sady zůstanou zachované.`)) return;
+    state.classes = state.classes.filter(c => c !== name);
+    delete state.classIcons[name];
+    state.sets.forEach(s => { if(s.className === name) s.className = ''; });
+    if(state.activeClassFilter === name) state.activeClassFilter = null;
+    saveClasses(); saveClassIcons(); saveSets(); render();
+  });
+  el.querySelector('[data-action="new-class"]').onclick = () => {
+    openNewClassModal();
+  };
+  el.querySelector('[data-action="signout"]').onclick = async () => {
+    const { error } = await supabase.auth.signOut();
+    if(error) showToast('Odhlášení se nezdařilo: ' + error.message);
+  };
+  return el;
+}
+
+function openNewClassModal(){
+  openModal(`
+    <div class="modal-head"><h2>Nová třída</h2><button class="modal-close" data-close>${icon('x',16)}</button></div>
+    <p class="page-sub">Pojmenuj třídu, do které budeš přiřazovat své sady.</p>
+    <input class="field-box" id="newClassName" placeholder="Např. 2.A nebo Biologie" autocomplete="off">
+    <div class="class-icon-field">
+      <div><p class="class-field-label">Ikona třídy</p>${emojiPickerMarkup('📚', 'newClassEmojiPicker', 'newClassIcon')}</div>
+    </div>
+    <div class="class-modal-actions">
+      <button class="btn btn-ghost" data-close>Zrušit</button>
+      <button class="btn btn-primary" id="saveNewClass">Přidat třídu</button>
+    </div>
+  `);
+  const input = document.getElementById('newClassName');
+  bindEmojiPicker('newClassEmojiPicker', 'newClassIcon');
+  const iconInput = document.getElementById('newClassIcon');
+  const save = () => {
+    const name = input.value.trim();
+    if(!name){ input.focus(); return; }
+    if(state.classes.includes(name)){ showToast('Třída s tímto názvem už existuje.'); return; }
+    state.classes.push(name);
+    state.classIcons[name] = iconInput.value.trim() || '📚';
+    saveClasses();
+    saveClassIcons();
+    closeModal();
+    render();
+  };
+  document.getElementById('saveNewClass').onclick = save;
+  input.onkeydown = (e) => { if(e.key === 'Enter') save(); };
+  input.focus();
+}
+
+function openEditClassModal(oldName){
+  const currentIcon = state.classIcons[oldName] || '📚';
+  const sortedSets = [...state.sets].sort((a,b) => (a.title||'').localeCompare(b.title||'', 'cs', { sensitivity:'base' }));
+  openModal(`
+    <div class="modal-head"><h2>Upravit třídu</h2><button class="modal-close" data-close>${icon('x',16)}</button></div>
+    <p class="page-sub">Změň název nebo ikonu třídy.</p>
+    <input class="field-box" id="editClassName" value="${escapeHtml(oldName)}" autocomplete="off">
+    <div class="class-icon-field">
+      <div><p class="class-field-label">Ikona třídy</p>${emojiPickerMarkup(currentIcon, 'editClassEmojiPicker', 'editClassIcon')}</div>
+    </div>
+    <p class="class-field-label" style="margin-top:16px">Sady v této třídě</p>
+    <div class="class-set-combobox" id="classSetCombobox">
+      <input class="field-box class-set-search" id="classSetSearch" placeholder="Vyhledat sadu podle názvu..." autocomplete="off">
+      <button type="button" class="class-set-toggle" id="classSetToggle" aria-label="Rozbalit seznam sad">⌄</button>
+      <div class="class-set-list" id="classSetPicker">
+        ${sortedSets.length ? sortedSets.map(set => `<label class="class-set-option"><input type="checkbox" data-class-set="${escapeHtml(set.id)}" ${set.className===oldName?'checked':''}><span>${escapeHtml(set.title || 'Bez názvu')}</span></label>`).join('') : '<span class="class-icon-hint">Zatím nemáš žádné sady.</span>'}
+      </div>
+    </div>
+    <div class="class-modal-actions">
+      <button class="btn btn-ghost" data-close>Zrušit</button>
+      <button class="btn btn-primary" id="saveClassEdit">Uložit změny</button>
+    </div>
+  `);
+  bindEmojiPicker('editClassEmojiPicker', 'editClassIcon');
+  const nameInput = document.getElementById('editClassName');
+  const iconInput = document.getElementById('editClassIcon');
+  const setSearch = document.getElementById('classSetSearch');
+  const setPicker = document.getElementById('classSetPicker');
+  const setCombobox = document.getElementById('classSetCombobox');
+  const setToggle = document.getElementById('classSetToggle');
+  const toggleSetPicker = (open) => {
+    setPicker.classList.toggle('open', open);
+    setToggle.textContent = open ? '⌃' : '⌄';
+  };
+  setSearch.onfocus = () => toggleSetPicker(true);
+  setToggle.onclick = (e) => { e.stopPropagation(); toggleSetPicker(!setPicker.classList.contains('open')); };
+  setSearch.oninput = () => {
+    toggleSetPicker(true);
+    const query = setSearch.value.trim().toLocaleLowerCase();
+    document.querySelectorAll('.class-set-option').forEach(option => {
+      option.style.display = option.textContent.toLocaleLowerCase().includes(query) ? 'flex' : 'none';
+    });
+  };
+  document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if(!setCombobox.contains(e.target)) toggleSetPicker(false);
+  });
+  const save = () => {
+    const newName = nameInput.value.trim();
+    if(!newName){ nameInput.focus(); return; }
+    if(newName !== oldName && state.classes.includes(newName)){ showToast('Třída s tímto názvem už existuje.'); return; }
+    const index = state.classes.indexOf(oldName);
+    state.classes[index] = newName;
+    state.classIcons[newName] = iconInput.value.trim() || '📚';
+    if(newName !== oldName) delete state.classIcons[oldName];
+    document.querySelectorAll('[data-class-set]').forEach(input => {
+      const set = state.sets.find(item => item.id === input.dataset.classSet);
+      if(set && input.checked) set.className = newName;
+      else if(set && set.className === oldName) set.className = '';
+    });
+    if(state.activeClassFilter === oldName) state.activeClassFilter = newName;
+    saveClasses(); saveClassIcons(); saveSets();
+    closeModal();
+    render();
+  };
+  document.getElementById('saveClassEdit').onclick = save;
+  nameInput.onkeydown = (e) => { if(e.key === 'Enter') save(); };
+  nameInput.focus();
+}
+
+function openAssignClassModal(setId){
+  const set = state.sets.find(item => item.id === setId);
+  if(!set) return;
+  if(state.classes.length === 0){ showToast('Nejdřív vytvoř alespoň jednu třídu.'); return; }
+  let selectedClass = set.className || '';
+  openModal(`
+    <div class="modal-head"><h2>Přiřadit do třídy</h2><button class="modal-close" data-close>${icon('x',16)}</button></div>
+    <p class="page-sub">Vyber třídu pro sadu „${escapeHtml(set.title)}“.</p>
+    <div class="setting-picker" id="assignClassPicker">
+      <button type="button" class="setting-picker-current" id="assignClassToggle"><span>${selectedClass ? `${escapeHtml(state.classIcons[selectedClass] || '📚')} ${escapeHtml(selectedClass)}` : 'Bez třídy'}</span><span>⌄</span></button>
+      <div class="setting-picker-menu">
+        <button type="button" class="setting-picker-option ${selectedClass===''?'selected':''}" data-assignment-class="">Bez třídy</button>
+        ${state.classes.map(name => `<button type="button" class="setting-picker-option ${selectedClass===name?'selected':''}" data-assignment-class="${escapeHtml(name)}">${classIcon(name)} ${escapeHtml(name)}</button>`).join('')}
+      </div>
+    </div>
+    <div class="class-modal-actions">
+      <button class="btn btn-ghost" data-close>Zrušit</button>
+      <button class="btn btn-primary" id="saveClassAssignment">Uložit</button>
+    </div>
+  `);
+  const assignClassPicker = document.getElementById('assignClassPicker');
+  document.getElementById('assignClassToggle').onclick = () => assignClassPicker.classList.toggle('open');
+  document.querySelectorAll('[data-assignment-class]').forEach(button => button.onclick = () => {
+    selectedClass = button.dataset.assignmentClass;
+    document.querySelectorAll('[data-assignment-class]').forEach(option => option.classList.toggle('selected', option === button));
+    assignClassPicker.querySelector('#assignClassToggle span').textContent = selectedClass ? `${state.classIcons[selectedClass] || '📚'} ${selectedClass}` : 'Bez třídy';
+    assignClassPicker.classList.remove('open');
+  });
+  document.getElementById('modalOverlay').addEventListener('click', (e) => { if(!assignClassPicker.contains(e.target)) assignClassPicker.classList.remove('open'); });
+  document.getElementById('saveClassAssignment').onclick = () => {
+    set.className = selectedClass;
+    saveSets();
+    closeModal();
+    render();
+    showToast('Sada byla přiřazena do třídy.');
+  };
+}
+
+/* ============================= HOME ============================= */
+function renderHome(){
+  const wrap = document.createElement('div');
+  const recent = [...state.sets].sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
+  const continueSets = Object.entries(state.progress)
+    .map(([setId, progress]) => ({ set:state.sets.find(item => item.id === setId), progress }))
+    .filter(item => item.set)
+    .sort((a,b) => b.progress.updatedAt - a.progress.updatedAt);
+  const recentClassNames = state.classes
+    .map(name => ({ name, latest: Math.max(0, ...state.sets.filter(set => set.className === name).map(set => set.updatedAt || set.createdAt || 0)) }))
+    .sort((a,b) => b.latest - a.latest)
+    .slice(0,3)
+    .map(item => item.name);
+  const activeClassSets = state.activeClassFilter ? recent.filter(set => set.className === state.activeClassFilter) : [];
+  wrap.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Vítej zpátky 👋</h1>
+        <p class="page-sub">Pokračuj v učení nebo si vytvoř novou sadu kartiček.</p>
+      </div>
+      <button class="btn btn-primary" id="createBtn">${icon('plus',18)} Vytvořit sadu</button>
+    </div>
+    ${state.activeClassFilter ? `<section class="home-section active-class-section"><div class="home-section-head"><h2 class="page-title" style="font-size:22px;margin:0">${classIcon(state.activeClassFilter)} ${escapeHtml(state.activeClassFilter)}</h2><button class="home-more" id="clearClassFilter">Zrušit výběr</button></div><div class="set-grid home-set-grid" id="activeClassGrid"></div></section>` : ''}
+    ${ recent.length || recentClassNames.length ? `
+      ${continueSets.length ? `<section class="home-section"><div class="home-section-head"><h3 class="home-section-title">Pokračovat ve studování</h3>${continueSets.length>6?'<button class="home-more" id="continueMore">Zobrazit vše</button>':''}</div><div class="set-grid home-set-grid" id="continueGrid"></div></section>` : ''}
+      <section class="home-section"><div class="home-section-head"><h3 class="home-section-title">Nedávné třídy</h3></div><div class="home-class-grid" id="recentClasses"></div></section>
+      ${recent.length ? '<section class="home-section"><div class="home-section-head"><h3 class="home-section-title">Nedávné sady</h3></div><div class="set-grid home-set-grid" id="recentGrid"></div></section>' : ''}` :
+      `<div class="empty-state">
+        <div style="font-size:34px">📚</div>
+        <h3>Zatím žádné kartičky</h3>
+        <p>Vytvoř první sadu a začni se učit.</p>
+        <button class="btn btn-primary" id="emptyCreateBtn">${icon('plus',18)} Vytvořit sadu</button>
+      </div>`
+    }
+  `;
+  wrap.querySelector('#createBtn').onclick = startCreate;
+  const clearClassFilter = wrap.querySelector('#clearClassFilter');
+  if(clearClassFilter) clearClassFilter.onclick = () => { state.activeClassFilter = null; render(); };
+  const activeClassGrid = wrap.querySelector('#activeClassGrid');
+  if(activeClassGrid){
+    if(activeClassSets.length) activeClassSets.forEach(set => activeClassGrid.appendChild(renderSetCard(set)));
+    else activeClassGrid.innerHTML = '<div class="empty-state"><h3>Třída zatím nemá žádné sady</h3><p>Přidej existující sadu nebo vytvoř novou.</p></div>';
+  }
+  const emptyBtn = wrap.querySelector('#emptyCreateBtn');
+  if(emptyBtn) emptyBtn.onclick = startCreate;
+  const continueGrid = wrap.querySelector('#continueGrid');
+  if(continueGrid) continueSets.forEach(item => continueGrid.appendChild(renderSetCard(item.set)));
+  const continueMore = wrap.querySelector('#continueMore');
+  if(continueMore) continueMore.onclick = () => {
+    continueGrid.classList.toggle('expanded');
+    continueMore.textContent = continueGrid.classList.contains('expanded') ? 'Skrýt' : 'Zobrazit vše';
+  };
+  const classesGrid = wrap.querySelector('#recentClasses');
+  recentClassNames.forEach(name => {
+    const classButton = document.createElement('button');
+    classButton.className = 'home-class-card';
+    const count = state.sets.filter(set => set.className === name).length;
+    classButton.innerHTML = `${classIcon(name)}<span><strong>${escapeHtml(name)}</strong><small>${count} ${count===1?'sada':'sad'}</small></span>`;
+    classButton.onclick = () => { state.activeClassFilter = name; state.view = 'home'; render(); };
+    classesGrid.appendChild(classButton);
+  });
+  const grid = wrap.querySelector('#recentGrid');
+  if(grid) recent.slice(0,3).forEach(s => grid.appendChild(renderSetCard(s)));
+  return wrap;
+}
+
+/* ============================= LIBRARY ============================= */
+function renderLibrary(){
+  const wrap = document.createElement('div');
+  const list = state.activeClassFilter ? state.sets.filter(s => s.className === state.activeClassFilter) : state.sets;
+  const sorted = [...list].sort((a,b) => state.librarySort === 'title'
+    ? (a.title||'').localeCompare(b.title||'', 'cs', { sensitivity:'base' })
+    : state.librarySort === 'created'
+      ? (b.createdAt||b.updatedAt||0) - (a.createdAt||a.updatedAt||0)
+      : (b.updatedAt||b.createdAt||0) - (a.updatedAt||a.createdAt||0));
+  wrap.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">${state.activeClassFilter ? escapeHtml(state.activeClassFilter) : 'Vaše knihovna'}</h1>
+        <p class="page-sub">${sorted.length} ${sorted.length===1?'sada kartiček':'sad kartiček'}</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="sort-switch" aria-label="Řazení sad"><button data-sort="updated" class="${state.librarySort==='updated'?'active':''}">Nedávné</button><button data-sort="title" class="${state.librarySort==='title'?'active':''}">Abecedně</button><button data-sort="created" class="${state.librarySort==='created'?'active':''}">Datum vytvoření</button></div>
+        <button class="btn btn-primary" id="createBtn">${icon('plus',18)} Vytvořit</button>
+      </div>
+    </div>
+    <div class="set-grid" id="grid"></div>
+  `;
+  wrap.querySelector('#createBtn').onclick = startCreate;
+  wrap.querySelectorAll('[data-sort]').forEach(button => button.onclick = () => { state.librarySort = button.dataset.sort; render(); });
+  const grid = wrap.querySelector('#grid');
+  if(sorted.length === 0){
+    grid.outerHTML = `<div class="empty-state">
+      <div style="font-size:34px">🗂️</div>
+      <h3>Nic tu není</h3>
+      <p>Vytvoř svou první sadu kartiček.</p>
+      <button class="btn btn-primary" id="emptyCreateBtn2">${icon('plus',18)} Vytvořit sadu</button>
+    </div>`;
+    wrap.querySelector('#emptyCreateBtn2').onclick = startCreate;
+  } else {
+    sorted.forEach(s => grid.appendChild(renderSetCard(s)));
+  }
+  return wrap;
+}
+
+function renderSetCard(s){
+  const card = document.createElement('div');
+  card.className = 'set-card';
+  card.innerHTML = `
+    <div class="set-card-top">
+      <p class="set-card-title">${escapeHtml(s.title)}</p>
+      <div class="set-card-actions">
+        <button data-act="edit" title="Upravit">${icon('pencil',15)}</button>
+        <button data-act="assign" title="Přiřadit do třídy">${icon('users',15)}</button>
+        <button data-act="del" title="Smazat">${icon('trash',15)}</button>
+      </div>
+    </div>
+    <p class="set-card-desc">${escapeHtml(s.description || 'Bez popisu')}</p>
+    <div class="set-card-meta">
+      <div class="set-card-meta-line"><span>🗂️ ${s.cards.length} kartiček</span><span>📅 ${formatDate(s.createdAt || s.updatedAt)}</span></div>
+      ${s.className ? `<span class="set-card-tag">${classIcon(s.className)}${escapeHtml(s.className)}</span>` : ''}
+    </div>
+  `;
+  card.onclick = (e) => {
+    if(e.target.closest('[data-act]')) return;
+    openStudy(s.id);
+  };
+  card.querySelector('[data-act="edit"]').onclick = (e) => { e.stopPropagation(); startEdit(s.id); };
+  card.querySelector('[data-act="assign"]').onclick = (e) => { e.stopPropagation(); openAssignClassModal(s.id); };
+  card.querySelector('[data-act="del"]').onclick = (e) => {
+    e.stopPropagation();
+    if(confirm(`Smazat sadu „${s.title}“? Tuto akci nelze vrátit.`)){
+      state.sets = state.sets.filter(x=>x.id!==s.id);
+      saveSets();
+      render();
+      showToast('Sada byla smazána.');
+    }
+  };
+  return card;
+}
+
+/* ============================= CREATE / EDIT ============================= */
+let draft = null; // { id, title, description, isPublic, className, cards:[...] }
+
+function startCreate(){
+  draft = { id: uid(), title:'', description:'', isPublic:true, className:'', cards:[emptyCard(), emptyCard()] };
+  state.editingSetId = null;
+  state.view = 'create';
+  render();
+}
+function startEdit(setId){
+  const s = state.sets.find(x=>x.id===setId);
+  if(!s) return;
+  draft = JSON.parse(JSON.stringify(s));
+  draft.cards = draft.cards.map(normalizeCard);
+  state.editingSetId = setId;
+  state.view = 'create';
+  render();
+}
+
+function renderCreate(){
+  const wrap = document.createElement('div');
+  wrap.className = 'create-wrap';
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'back-link';
+  backBtn.innerHTML = `${icon('back',16)} Zpět do knihovny`;
+  backBtn.onclick = () => { state.view='library'; render(); };
+  wrap.appendChild(backBtn);
+
+  const top = document.createElement('div');
+  top.className = 'create-topbar';
+  top.innerHTML = `
+    <h1 class="page-title" style="margin:0">${state.editingSetId ? 'Upravit sadu' : 'Vytvořit novou sadu kartiček'}</h1>
+    <button class="btn btn-primary" id="createTop">${state.editingSetId ? 'Uložit' : 'Vytvořit'}</button>
+  `;
+  wrap.appendChild(top);
+
+  const pill = document.createElement('button');
+  pill.className = 'pill-toggle';
+  pill.style.marginBottom = '18px';
+  const setPillLabel = () => pill.innerHTML = (draft.isPublic ? '🌐 Veřejné' : '🔒 Soukromé');
+  setPillLabel();
+  pill.onclick = () => { draft.isPublic = !draft.isPublic; setPillLabel(); };
+  wrap.appendChild(pill);
+
+  const titleInput = document.createElement('input');
+  titleInput.className = 'field-box';
+  titleInput.id = 'titleInput';
+  titleInput.placeholder = 'Název, např. „Maturita – český jazyk, 1. okruh“';
+  titleInput.value = draft.title;
+  titleInput.oninput = () => draft.title = titleInput.value;
+  wrap.appendChild(titleInput);
+
+  const descInput = document.createElement('textarea');
+  descInput.className = 'field-box';
+  descInput.placeholder = 'Přidat popis...';
+  descInput.value = draft.description;
+  descInput.oninput = () => draft.description = descInput.value;
+  wrap.appendChild(descInput);
+
+  const classField = document.createElement('div');
+  classField.className = 'class-field';
+  classField.innerHTML = '<label class="class-field-label" for="classSelect">Třída</label>';
+  const classRow = document.createElement('select');
+  classRow.id = 'classSelect';
+  classRow.className = 'field-box class-select';
+  classRow.style.cursor = 'pointer';
+  classRow.innerHTML = `<option value="">Bez třídy</option>` + state.classes.map(c => `<option value="${escapeHtml(c)}" ${draft.className===c?'selected':''}>${escapeHtml(c)}</option>`).join('');
+  classRow.onchange = () => draft.className = classRow.value;
+  classField.appendChild(classRow);
+  wrap.appendChild(classField);
+
+  // toolbar
+  const toolbar = document.createElement('div');
+  toolbar.className = 'toolbar-row';
+  toolbar.innerHTML = `
+    <div class="toolbar-left">
+      <button class="chip-btn" id="importBtn">${icon('plus',15)} Importovat</button>
+    </div>
+    <div class="toolbar-right">
+      <span class="suggestions-toggle">Návrhy <button class="switch ${draft.suggestions!==false?'on':''}" id="suggSwitch"><span class="knob"></span></button></span>
+      <button class="icon-btn" id="swapBtn" title="Prohodit pojem a definici">${icon('shuffle',17)}</button>
+      <button class="icon-btn" id="kbdBtn" title="Klávesové zkratky">${icon('drag',17)}</button>
+      <button class="icon-btn" id="clearBtn" title="Smazat vše" style="color:var(--danger)">${icon('trash',17)}</button>
+    </div>
+  `;
+  wrap.appendChild(toolbar);
+
+  const cardsContainer = document.createElement('div');
+  cardsContainer.id = 'cardsContainer';
+  wrap.appendChild(cardsContainer);
+  let draggedCard = null;
+
+  function buildRow(cardData, index){
+    const row = document.createElement('div');
+    row.className = 'card-row';
+    row.draggable = true;
+    row.innerHTML = `
+      <div class="card-row-top">
+        <span class="card-row-num">${index+1}</span>
+        <div class="card-row-tools">
+          <button class="drag-h" title="Přesunout">${icon('drag',16)}</button>
+          <button class="del-row" title="Smazat kartičku">${icon('trash',16)}</button>
+        </div>
+      </div>
+      <div class="card-row-fields">
+        <div class="card-field">
+          <div class="format-toolbar">
+            <button type="button" class="format-btn" data-command="bold" title="Tučně">B</button>
+            <button type="button" class="format-btn" data-command="italic" title="Kurzíva"><i>I</i></button>
+            <button type="button" class="format-btn" data-command="underline" title="Podtržení"><u>U</u></button>
+          </div>
+          <div contenteditable="true" class="rich-editor term-input" data-placeholder="Zadejte pojem">${sanitizeRichText(cardData.term)}</div>
+          <span class="card-field-label">Pojem</span>
+          <label class="image-drop term-image">
+            ${cardData.termImage ? `<img src="${cardData.termImage}"><span class="remove-img">${icon('x',11)}</span>` : `${icon('image',18)}<span>Obrázek k pojmu</span>`}
+            <input type="file" accept="image/*" style="display:none" class="term-img-input">
+          </label>
+        </div>
+        <div class="card-field">
+          <div class="format-toolbar">
+            <button type="button" class="format-btn" data-command="bold" title="Tučně">B</button>
+            <button type="button" class="format-btn" data-command="italic" title="Kurzíva"><i>I</i></button>
+            <button type="button" class="format-btn" data-command="underline" title="Podtržení"><u>U</u></button>
+          </div>
+          <div contenteditable="true" class="rich-editor def-input" data-placeholder="Zadejte definici">${sanitizeRichText(cardData.def)}</div>
+          <span class="card-field-label">Definice</span>
+          <label class="image-drop def-image">
+            ${cardData.defImage ? `<img src="${cardData.defImage}"><span class="remove-img">${icon('x',11)}</span>` : `${icon('image',18)}<span>Obrázek k definici</span>`}
+            <input type="file" accept="image/*" style="display:none" class="def-img-input">
+          </label>
+        </div>
+      </div>
+    `;
+    row.querySelector('.term-input').oninput = (e) => { cardData.term = sanitizeRichText(e.target.innerHTML); };
+    row.querySelector('.def-input').oninput = (e) => { cardData.def = sanitizeRichText(e.target.innerHTML); };
+    row.querySelectorAll('.format-btn').forEach(button => {
+      button.onmousedown = e => e.preventDefault();
+      button.onclick = () => {
+        const editor = button.closest('.card-field').querySelector('.rich-editor');
+        editor.focus();
+        document.execCommand(button.dataset.command, false);
+        editor.dispatchEvent(new Event('input', { bubbles:true }));
+      };
+    });
+    row.querySelector('.del-row').onclick = () => {
+      if(draft.cards.length <= 1){ showToast('Sada musí mít alespoň jednu kartičku.'); return; }
+      const idx = draft.cards.indexOf(cardData);
+      draft.cards.splice(idx,1);
+      rebuildRows();
+    };
+    const dragHandle = row.querySelector('.drag-h');
+    dragHandle.draggable = true;
+    dragHandle.addEventListener('dragstart', (e) => {
+      e.stopPropagation();
+      draggedCard = cardData;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', cardData.term || 'card');
+      requestAnimationFrame(() => row.classList.add('dragging'));
+    });
+    row.addEventListener('dragstart', (e) => {
+      if(e.target.closest('.drag-h')) return;
+      e.preventDefault();
+    });
+    row.addEventListener('dragover', (e) => {
+      if(!draggedCard || draggedCard === cardData) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      row.classList.add('drag-over');
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+    row.addEventListener('drop', (e) => {
+      e.preventDefault();
+      row.classList.remove('drag-over');
+      if(!draggedCard || draggedCard === cardData) return;
+      const fromIndex = draft.cards.indexOf(draggedCard);
+      let toIndex = draft.cards.indexOf(cardData);
+      draft.cards.splice(fromIndex, 1);
+      if(fromIndex < toIndex) toIndex -= 1;
+      draft.cards.splice(toIndex, 0, draggedCard);
+      draggedCard = null;
+      rebuildRows();
+    });
+    row.addEventListener('dragend', () => {
+      draggedCard = null;
+      cardsContainer.querySelectorAll('.card-row').forEach(cardRow => cardRow.classList.remove('dragging', 'drag-over'));
+    });
+    [['.term-img-input', '.term-image', 'termImage'], ['.def-img-input', '.def-image', 'defImage']].forEach(([inputSelector, dropSelector, property]) => {
+      const imgInput = row.querySelector(inputSelector);
+      const dropLabel = row.querySelector(dropSelector);
+      dropLabel.addEventListener('click', (e) => {
+        if(e.target.closest('.remove-img')){
+          e.preventDefault();
+          cardData[property] = null;
+          rebuildRows();
+        }
+      });
+      imgInput.onchange = () => {
+        const file = imgInput.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = () => { cardData[property] = reader.result; rebuildRows(); };
+        reader.readAsDataURL(file);
+      };
+    });
+    return row;
+  }
+
+  function rebuildRows(){
+    cardsContainer.innerHTML = '';
+    draft.cards.forEach((c,i) => cardsContainer.appendChild(buildRow(c,i)));
+  }
+  rebuildRows();
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-card-btn';
+  addBtn.innerHTML = `${icon('plus',18)} Přidat kartičku`;
+  addBtn.onclick = () => { draft.cards.push(emptyCard()); rebuildRows(); };
+  wrap.appendChild(addBtn);
+
+  const footer = document.createElement('div');
+  footer.className = 'create-footer';
+  const createBtnBottom = document.createElement('button');
+  createBtnBottom.className = 'btn btn-primary';
+  createBtnBottom.textContent = state.editingSetId ? 'Uložit' : 'Vytvořit';
+  createBtnBottom.onclick = commitDraft;
+  footer.appendChild(createBtnBottom);
+  wrap.appendChild(footer);
+
+  top.querySelector('#createTop').onclick = commitDraft;
+
+  toolbar.querySelector('#importBtn').onclick = openImportModal;
+  toolbar.querySelector('#suggSwitch').onclick = (e) => {
+    draft.suggestions = draft.suggestions === false ? true : false;
+    e.currentTarget.classList.toggle('on');
+  };
+  toolbar.querySelector('#swapBtn').onclick = () => {
+    draft.cards.forEach(c => { const t=c.term; c.term=c.def; c.def=t; });
+    rebuildRows();
+    showToast('Pojmy a definice byly prohozeny.');
+  };
+  toolbar.querySelector('#kbdBtn').onclick = () => showToast('Tip: přetažením ikony ⠿ změníš pořadí kartiček.');
+  toolbar.querySelector('#clearBtn').onclick = () => {
+    if(confirm('Smazat všechny kartičky v této sadě?')){
+      draft.cards = [emptyCard(), emptyCard()];
+      rebuildRows();
+    }
+  };
+
+  return wrap;
+}
+
+function openImportModal(){
+  openModal(`
+    <div class="modal-head"><h2>Importovat kartičky</h2><button class="modal-close" data-close>${icon('x',16)}</button></div>
+    <p class="page-sub" style="margin-bottom:12px">Vlož dvojice pojem–definice. Odděl pojem od definice tabulátorem nebo čárkou a jednotlivé kartičky novým řádkem.</p>
+    <textarea class="field-box import-textarea" id="importArea" placeholder="jablko, ovoce, které roste na stromě&#10;pes, domácí zvíře a věrný přítel"></textarea>
+    <div class="import-opts">
+      <label>Mezi pojmem a definicí<select id="sepBetween"><option value="tab">Tabulátor</option><option value=",">Čárka</option><option value=";">Středník</option></select></label>
+      <label>Mezi kartičkami<select id="sepCards"><option value="\\n">Nový řádek</option><option value=";;">;;</option></select></label>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px">
+      <button class="btn btn-ghost" data-close>Zrušit</button>
+      <button class="btn btn-primary" id="doImport">Importovat</button>
+    </div>
+  `);
+  document.getElementById('doImport').onclick = () => {
+    const text = document.getElementById('importArea').value;
+    const sepBetween = document.getElementById('sepBetween').value === 'tab' ? '\t' : document.getElementById('sepBetween').value;
+    const sepCardsRaw = document.getElementById('sepCards').value;
+    const lines = sepCardsRaw === '\\n' ? text.split('\n') : text.split(sepCardsRaw);
+    const newCards = [];
+    lines.forEach(line => {
+      if(!line.trim()) return;
+      const idx = line.indexOf(sepBetween);
+      if(idx === -1) return;
+      const term = line.slice(0, idx).trim();
+      const def = line.slice(idx + sepBetween.length).trim();
+      if(term || def) newCards.push(emptyCardWithText(term, def));
+    });
+    if(newCards.length === 0){ showToast('Nepodařilo se rozpoznat žádné kartičky.'); return; }
+    if(draft.cards.length===1 && !draft.cards[0].term && !draft.cards[0].def) draft.cards = [];
+    draft.cards.push(...newCards);
+    closeModal();
+    state.view = 'create';
+    render();
+    showToast(`Přidáno ${newCards.length} kartiček.`);
+  };
+}
+
+function commitDraft(){
+  if(!draft.title.trim()){ showToast('Zadej prosím název sady.'); return; }
+  const validCards = draft.cards.filter(c => c.term.trim() || c.def.trim());
+  if(validCards.length === 0){ showToast('Přidej alespoň jednu kartičku s pojmem nebo definicí.'); return; }
+  draft.cards = validCards;
+  const now = Date.now();
+  const idx = state.sets.findIndex(s => s.id === draft.id);
+  if(idx >= 0){
+    state.sets[idx] = { ...draft, updatedAt: now };
+  } else {
+    state.sets.push({ ...draft, createdAt: now, updatedAt: now });
+  }
+  saveSets();
+  const savedId = draft.id;
+  draft = null;
+  showToast('Sada byla uložena.');
+  openStudy(savedId);
+}
+
+/* ============================= STUDY ============================= */
+function openStudy(setId){
+  const s = state.sets.find(x=>x.id===setId);
+  if(!s) return;
+  if(!s.starred) s.starred = [];
+  state.study = {
+    setId,
+    queue: s.cards.map((_,i)=>i),
+    pointer: 0,
+    flipped: false,
+    showHint: false,
+    history: [],
+    wrong: [],
+    settings: { trackProgress:true, starredOnly:false, front:'term', tts:false, cardSize:'large', flipAnimation:true },
+  };
+  state.view = 'study';
+  render();
+}
+
+function currentSet(){ return state.sets.find(s=>s.id===state.study.setId); }
+
+function recordStudyProgress(setId, remaining, total){
+  state.progress[setId] = { remaining, total, updatedAt:Date.now() };
+  saveProgress();
+}
+
+function setTrackProgress(enabled){
+  if(!state.study) return;
+  state.study.settings.trackProgress = enabled;
+  document.querySelectorAll('#trackSwitch, #mTrack').forEach(toggle => toggle.classList.toggle('on', enabled));
+}
+
+function initQueueFromSettings(){
+  const s = currentSet();
+  const st = state.study;
+  let indices = s.cards.map((_,i)=>i);
+  if(st.settings.starredOnly) indices = indices.filter(i => (s.starred||[]).includes(i));
+  if(indices.length === 0) indices = s.cards.map((_,i)=>i);
+  st.queue = indices;
+  st.pointer = 0;
+  st.flipped = false;
+  st.history = [];
+  st.wrong = [];
+}
+
+function speak(text){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'cs-CZ';
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+function renderStudy(){
+  const s = currentSet();
+  const st = state.study;
+  const wrap = document.createElement('div');
+  wrap.style.display='flex'; wrap.style.flexDirection='column'; wrap.style.flex='1'; wrap.style.minHeight='100vh';
+
+  const topbar = document.createElement('div');
+  topbar.className = 'study-topbar';
+  topbar.innerHTML = `
+    <div class="study-topbar-left">
+      <button class="icon-btn" id="backBtn">${icon('back',18)}</button>
+      <span class="study-title">${escapeHtml(s.title)}</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline btn-sm" id="editSetBtn">${icon('pencil',14)} Upravit</button>
+    </div>
+  `;
+  topbar.querySelector('#backBtn').onclick = () => { state.view='library'; state.study=null; render(); };
+  topbar.querySelector('#editSetBtn').onclick = () => startEdit(s.id);
+  wrap.appendChild(topbar);
+
+  const body = document.createElement('div');
+  body.className = 'study-body';
+
+  if(st.queue.length === 0){
+    const canPracticeWrong = st.settings.trackProgress && st.wrong.length > 0;
+    body.innerHTML = `
+      <div class="done-panel">
+        <div class="emoji">🎉</div>
+        <h2>Skvělá práce!</h2>
+        <p>Prošel(a) jsi všechny kartičky v této sadě.</p>
+        <div style="display:flex;gap:10px;justify-content:center">
+          ${canPracticeWrong ? '<button class="btn btn-ghost" id="wrongBtn">Procvičit, co neumím</button>' : ''}
+          <button class="btn btn-ghost" id="restartBtn2">Začít znovu</button>
+          <button class="btn btn-primary" id="libBtn">Zpět do knihovny</button>
+        </div>
+      </div>
+    `;
+    const wrongBtn = body.querySelector('#wrongBtn');
+    if(wrongBtn) wrongBtn.onclick = () => { st.queue = [...st.wrong]; st.wrong = []; st.pointer = 0; st.flipped = false; st.history = []; render(); };
+    body.querySelector('#restartBtn2').onclick = () => { initQueueFromSettings(); render(); };
+    body.querySelector('#libBtn').onclick = () => { state.view='library'; state.study=null; render(); };
+    wrap.appendChild(body);
+    return wrap;
+  }
+
+  const cardIdx = st.queue[st.pointer];
+  const card = s.cards[cardIdx];
+  const frontIsTerm = st.settings.front === 'term';
+  const frontText = frontIsTerm ? card.term : card.def;
+  const backText = frontIsTerm ? card.def : card.term;
+  const frontImage = frontIsTerm ? (card.termImage || card.image) : (card.defImage || card.image);
+  const backImage = frontIsTerm ? (card.defImage || card.image) : (card.termImage || card.image);
+  const isStarred = (s.starred||[]).includes(cardIdx);
+
+  const stage = document.createElement('div');
+  stage.className = 'study-stage';
+  stage.innerHTML = `
+    <div class="flash-scene">
+      <div class="flash-card size-${st.settings.cardSize || 'large'} ${st.settings.flipAnimation===false?'no-flip':''} ${st.flipped?'flipped':''}" id="flashCard">
+        <div class="flash-face front">
+          <div class="flash-face-top">
+            <button class="hint-btn" id="hintBtn">${icon('bulb',16)} Nápověda</button>
+            <button class="star-btn ${isStarred?'active':''}" id="starBtn">${icon('star',18)}</button>
+          </div>
+          <div class="flash-face-content">
+            ${frontImage ? `<img src="${frontImage}">` : ''}
+            <span>${sanitizeRichText(frontText || '—')}</span>
+            ${st.showHint && !st.flipped ? `<div class="flash-hint">Nápověda: ${escapeHtml((backText||'').slice(0, Math.max(3, Math.ceil((backText||'').length/3))))}…</div>` : ''}
+          </div>
+        </div>
+        <div class="flash-face back">
+          <div class="flash-face-top">
+            <span style="width:18px"></span>
+            <button class="star-btn ${isStarred?'active':''}" id="starBtnBack">${icon('star',18)}</button>
+          </div>
+          <div class="flash-face-content">
+            ${backImage ? `<img src="${backImage}">` : ''}
+            <span>${sanitizeRichText(backText || '—')}</span>
+          </div>
+        </div>
+      </div>
+      ${st.settings.showShortcuts !== false ? `<div class="flash-shortcut-bar">${icon('drag',15)} Otočení <kbd>mezerník</kbd> · Neumím <kbd>A</kbd> · Umím <kbd>D</kbd></div>` : ''}
+    </div>
+  `;
+  body.appendChild(stage);
+
+  const controls = document.createElement('div');
+  controls.className = 'study-controls';
+  controls.innerHTML = `
+    <div class="track-toggle">Sledovat pokrok <button class="switch ${st.settings.trackProgress?'on':''}" id="trackSwitch"><span class="knob"></span></button></div>
+    <div class="control-center">
+      <button class="round-btn no" id="noBtn">${icon('x',22)}</button>
+      <span class="counter">${st.pointer+1} / ${st.queue.length}</span>
+      <button class="round-btn yes" id="yesBtn">${icon('check',20)}</button>
+    </div>
+    <div class="control-right">
+      <button id="undoBtn" title="Zpět">${icon('undo',18)}</button>
+      <button id="shuffleBtn" title="Zamíchat">${icon('shuffle',17)}</button>
+      <button id="settingsBtn" title="Nastavení">${icon('gear',18)}</button>
+      <button id="fullscreenBtn" title="Celá obrazovka">${icon('expand',17)}</button>
+    </div>
+  `;
+  body.appendChild(controls);
+  wrap.appendChild(body);
+
+  // interactions
+  const flashEl = stage.querySelector('#flashCard');
+  stage.querySelectorAll('.flash-face-content img').forEach(image => {
+    image.onclick = (e) => { e.stopPropagation(); openImageLightbox(image.src); };
+  });
+  flashEl.onclick = () => {
+    st.flipped = !st.flipped;
+    if(st.settings.tts) speak(st.flipped ? backText : frontText);
+    flashEl.classList.toggle('flipped', st.flipped);
+  };
+  stage.querySelector('#hintBtn').onclick = (e) => { e.stopPropagation(); st.showHint = !st.showHint; render(); };
+  const toggleStar = (e) => {
+    e.stopPropagation();
+    s.starred = s.starred || [];
+    const i = s.starred.indexOf(cardIdx);
+    if(i>=0) s.starred.splice(i,1); else s.starred.push(cardIdx);
+    saveSets();
+    render();
+  };
+  stage.querySelector('#starBtn').onclick = toggleStar;
+  const starBack = stage.querySelector('#starBtnBack');
+  if(starBack) starBack.onclick = toggleStar;
+
+  function pushHistory(){
+    st.history.push({ queue:[...st.queue], pointer: st.pointer });
+    if(st.history.length>50) st.history.shift();
+  }
+  function advance(knew){
+    pushHistory();
+    const idx = st.queue[st.pointer];
+    st.queue.splice(st.pointer,1);
+    if(!knew && st.settings.trackProgress && !st.wrong.includes(idx)) st.wrong.push(idx);
+    if(st.pointer >= st.queue.length) st.pointer = 0;
+    recordStudyProgress(st.setId, st.queue.length, s.cards.length);
+    st.flipped = false;
+    st.showHint = false;
+    render();
+  }
+  let swipeLocked = false;
+  function swipeAndAdvance(knew, direction){
+    if(swipeLocked) return;
+    swipeLocked = true;
+    flashEl.classList.add(direction === 'left' ? 'swipe-left' : 'swipe-right');
+    setTimeout(() => advance(knew), 280);
+  }
+  controls.querySelector('#noBtn').onclick = () => swipeAndAdvance(false, 'left');
+  controls.querySelector('#yesBtn').onclick = () => swipeAndAdvance(true, 'right');
+  controls.querySelector('#undoBtn').onclick = () => {
+    const prev = st.history.pop();
+    if(prev){ st.queue = prev.queue; st.pointer = prev.pointer; st.flipped=false; render(); }
+    else showToast('Není co vrátit.');
+  };
+  controls.querySelector('#shuffleBtn').onclick = () => {
+    for(let i=st.queue.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [st.queue[i],st.queue[j]]=[st.queue[j],st.queue[i]]; }
+    st.pointer = 0; st.flipped=false;
+    render();
+    showToast('Kartičky zamíchány.');
+  };
+  controls.querySelector('#settingsBtn').onclick = openStudySettings;
+  controls.querySelector('#fullscreenBtn').onclick = () => {
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(()=>{});
+    else document.exitFullscreen?.();
+  };
+  controls.querySelector('#trackSwitch').onclick = (e) => {
+    setTrackProgress(!st.settings.trackProgress);
+  };
+
+  // keyboard shortcuts
+  wrap.tabIndex = -1;
+  document.onkeydown = (e) => {
+    if(state.view !== 'study') return;
+    if(e.code === 'Escape'){ e.preventDefault(); handleEscape(); }
+    else if(e.code === 'Space'){ e.preventDefault(); flashEl.click(); }
+    else if(e.code === 'ArrowRight' || e.code === 'KeyD'){
+      e.preventDefault();
+      e.stopPropagation();
+      if(!e.repeat) swipeAndAdvance(true, 'right');
+    }
+    else if(e.code === 'ArrowLeft' || e.code === 'KeyA'){
+      e.preventDefault();
+      e.stopPropagation();
+      if(!e.repeat) swipeAndAdvance(false, 'left');
+    }
+  };
+
+  return wrap;
+}
+
+function openStudySettings(){
+  const s = currentSet();
+  const st = state.study;
+  openModal(`
+    <div class="modal-head"><h2>Možnosti</h2><button class="modal-close" data-close>${icon('x',16)}</button></div>
+    <div class="opt-row">
+      <div class="opt-row-text">
+        <p class="opt-row-title">Sledovat pokrok</p>
+        <p class="opt-row-desc">Třídí kartičky podle toho, co už umíš a co se ještě učíš. Vypni pro rychlé procházení.</p>
+      </div>
+      <button class="switch ${st.settings.trackProgress?'on':''}" id="mTrack"><span class="knob"></span></button>
+    </div>
+    <div class="opt-row">
+      <div class="opt-row-text">
+        <p class="opt-row-title">Učit se jen označené pojmy</p>
+        <p class="opt-row-desc">Zobrazí pouze kartičky označené hvězdičkou.</p>
+      </div>
+      <button class="switch ${st.settings.starredOnly?'on':''}" id="mStar"><span class="knob"></span></button>
+    </div>
+    <div class="opt-row">
+      <div class="opt-row-text"><p class="opt-row-title">Přední strana</p></div>
+      <div class="setting-picker" id="frontPicker">
+        <button type="button" class="setting-picker-current" id="frontToggle"><span>${st.settings.front==='term'?'Pojem':'Definice'}</span><span>⌄</span></button>
+        <div class="setting-picker-menu">
+          <button type="button" class="setting-picker-option ${st.settings.front==='term'?'selected':''}" data-front-side="term">Pojem</button>
+          <button type="button" class="setting-picker-option ${st.settings.front==='def'?'selected':''}" data-front-side="def">Definice</button>
+        </div>
+      </div>
+    </div>
+    <div class="opt-row">
+      <div class="opt-row-text">
+        <p class="opt-row-title">Velikost kartičky</p>
+        <p class="opt-row-desc">Nastaví výšku kartičky při procvičování.</p>
+      </div>
+      <div class="setting-picker" id="cardSizePicker">
+        <button type="button" class="setting-picker-current" id="cardSizeToggle"><span>${(st.settings.cardSize||'large')==='small'?'Menší':(st.settings.cardSize||'large')==='medium'?'Standardní':'Větší'}</span><span>⌄</span></button>
+        <div class="setting-picker-menu">
+          <button type="button" class="setting-picker-option ${(st.settings.cardSize||'large')==='small'?'selected':''}" data-card-size="small">Menší</button>
+          <button type="button" class="setting-picker-option ${(st.settings.cardSize||'large')==='medium'?'selected':''}" data-card-size="medium">Standardní</button>
+          <button type="button" class="setting-picker-option ${(st.settings.cardSize||'large')==='large'?'selected':''}" data-card-size="large">Větší</button>
+        </div>
+      </div>
+    </div>
+    <div class="opt-row">
+      <div class="opt-row-text">
+        <p class="opt-row-title">Animace otočení</p>
+        <p class="opt-row-desc">Plynulé otočení kartičky při zobrazení druhé strany.</p>
+      </div>
+      <button class="switch ${st.settings.flipAnimation!==false?'on':''}" id="mFlip"><span class="knob"></span></button>
+    </div>
+    <div class="opt-row">
+      <div class="opt-row-text"><p class="opt-row-title">Klávesové zkratky</p></div>
+      <button class="switch ${st.settings.showShortcuts!==false?'on':''}" id="mKbdToggle" aria-label="Zobrazit klávesové zkratky"><span class="knob"></span></button>
+    </div>
+    <div class="kbd-list" id="kbdList" style="display:${st.settings.showShortcuts!==false?'flex':'none'}">
+      <div><span>Otočit kartičku</span><kbd>Mezerník</kbd></div>
+      <div><span>Umím</span><kbd>D / →</kbd></div>
+      <div><span>Neumím</span><kbd>A / ←</kbd></div>
+    </div>
+    <div class="opt-row">
+      <div class="opt-row-text">
+        <p class="opt-row-title">Hlasové čtení</p>
+        <p class="opt-row-desc">Nahlas přečte text na otočené straně kartičky.</p>
+      </div>
+      <button class="switch ${st.settings.tts?'on':''}" id="mTts"><span class="knob"></span></button>
+    </div>
+    <div class="link-row danger" id="mRestart">Restartovat kartičky</div>
+  `);
+  document.getElementById('mTrack').onclick = () => setTrackProgress(!st.settings.trackProgress);
+  document.getElementById('mStar').onclick = (e) => {
+    st.settings.starredOnly = !st.settings.starredOnly;
+    e.currentTarget.classList.toggle('on');
+    initQueueFromSettings();
+  };
+  const frontPicker = document.getElementById('frontPicker');
+  document.getElementById('frontToggle').onclick = () => frontPicker.classList.toggle('open');
+  document.querySelectorAll('[data-front-side]').forEach(option => option.onclick = () => {
+    st.settings.front = option.dataset.frontSide;
+    st.flipped = false;
+    closeModal();
+    render();
+  });
+  const cardSizePicker = document.getElementById('cardSizePicker');
+  document.getElementById('cardSizeToggle').onclick = () => cardSizePicker.classList.toggle('open');
+  document.querySelectorAll('[data-card-size]').forEach(option => option.onclick = () => {
+    st.settings.cardSize = option.dataset.cardSize;
+    closeModal();
+    render();
+  });
+  document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if(!cardSizePicker.contains(e.target)) cardSizePicker.classList.remove('open');
+    if(!frontPicker.contains(e.target)) frontPicker.classList.remove('open');
+  });
+  document.getElementById('mFlip').onclick = (e) => {
+    st.settings.flipAnimation = !st.settings.flipAnimation;
+    e.currentTarget.classList.toggle('on', st.settings.flipAnimation);
+    const flashCard = document.getElementById('flashCard');
+    if(flashCard) flashCard.classList.toggle('no-flip', !st.settings.flipAnimation);
+  };
+  document.getElementById('mTts').onclick = (e) => { st.settings.tts = !st.settings.tts; e.currentTarget.classList.toggle('on'); };
+  document.getElementById('mKbdToggle').onclick = () => {
+    const l = document.getElementById('kbdList');
+    const visible = l.style.display !== 'none';
+    st.settings.showShortcuts = !visible;
+    l.style.display = visible ? 'none' : 'flex';
+    document.getElementById('mKbdToggle').classList.toggle('on', !visible);
+    document.querySelectorAll('.flash-shortcut-bar').forEach(bar => { bar.style.display = visible ? 'none' : 'flex'; });
+  };
+  document.getElementById('mRestart').onclick = () => {
+    if(confirm('Restartovat pokrok v této sadě?')){ initQueueFromSettings(); closeModal(); render(); showToast('Kartičky restartovány.'); }
+  };
+}
+
+function openImageLightbox(src){
+  const overlay = document.createElement('div');
+  overlay.className = 'image-lightbox';
+  overlay.innerHTML = `<button class="image-lightbox-close" title="Zavřít">${icon('x',18)}</button><img src="${src}" alt="Zvětšený obrázek">`;
+  overlay.onclick = (e) => { if(e.target === overlay || e.target.closest('.image-lightbox-close')) overlay.remove(); };
+  document.body.appendChild(overlay);
+}
+
+/* ============================= MODAL ============================= */
+function openModal(innerHtml, wide=false){
+  closeModal();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'modalOverlay';
+  overlay.innerHTML = `<div class="modal ${wide?'modal-wide':''}">${innerHtml}</div>`;
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) closeModal(); });
+  overlay.querySelectorAll('[data-close]').forEach(b => b.onclick = closeModal);
+  document.body.appendChild(overlay);
+}
+function closeModal(){
+  const el = document.getElementById('modalOverlay');
+  if(el) el.remove();
+}
+
+function handleEscape(){
+  const lightbox = document.querySelector('.image-lightbox');
+  if(lightbox){ lightbox.remove(); return; }
+  const modal = document.getElementById('modalOverlay');
+  if(modal){ closeModal(); return; }
+  if(state.view === 'study' || state.view === 'create'){
+    state.view = 'library';
+    state.study = null;
+    render();
+  }
+}
+
+/* ============================= INIT ============================= */
+initializeAuth();
+</script>
+</body>
+</html>
