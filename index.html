@@ -579,8 +579,8 @@
 
   select.opt-select option{ background:var(--panel); }
 
-  .auth-screen{ min-height:100vh; display:grid; place-items:center; padding:24px; background:radial-gradient(ellipse at 50% 0%,rgba(91,95,242,.22),transparent 55%),var(--bg); }
-  .auth-panel{ width:min(100%,420px); padding:32px; border:1px solid var(--border); border-radius:18px; background:var(--panel); box-shadow:0 24px 70px rgba(0,0,0,.28); }
+  .auth-screen{ width:100%; min-height:100vh; min-height:100dvh; display:grid; place-items:center; padding:24px; background:radial-gradient(ellipse at 50% 0%,rgba(91,95,242,.22),transparent 55%),var(--bg); }
+  .auth-panel{ width:min(100%,420px); margin:auto; padding:32px; border:1px solid var(--border); border-radius:18px; background:var(--panel); box-shadow:0 24px 70px rgba(0,0,0,.28); }
   .auth-brand{ display:flex; align-items:center; gap:12px; margin-bottom:28px; font-size:19px; font-weight:800; }
   .auth-panel h1{ margin:0 0 8px; font-size:24px; }
   .auth-panel > p{ margin:0 0 24px; color:var(--text-dim); font-size:14px; line-height:1.55; }
@@ -598,6 +598,8 @@
   .account-email{ overflow:hidden; color:var(--text-faint); font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
   .account-signout{ display:flex; align-items:center; gap:9px; width:100%; margin-top:8px; padding:8px 0; border:0; background:none; color:var(--text-dim); cursor:pointer; font:600 13px inherit; text-align:left; }
   .account-signout:hover{ color:var(--text); }
+  .admin-nav-label{ margin-top:16px; }
+  .admin-nav-item{ margin-left:8px; width:calc(100% - 8px); }
   .admin-note{ margin-bottom:18px; padding:12px 14px; border-left:3px solid var(--accent); background:var(--panel); color:var(--text-dim); font-size:13px; line-height:1.5; }
   .admin-content{ min-height:120px; }
   .admin-table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:12px; background:var(--panel); }
@@ -624,6 +626,8 @@
   }
   @media (max-width: 460px){
     .home-set-grid, .home-class-grid{ grid-template-columns:1fr; }
+    .auth-screen{ padding:16px; }
+    .auth-panel{ padding:24px; }
   }
 </style>
 </head>
@@ -825,7 +829,7 @@ function renderAdmin(){
   const wrap = document.createElement('div');
   wrap.innerHTML = `
     <div class="page-header">
-      <div><h1 class="page-title">Administrace</h1><p class="page-sub">Účty a uložený obsah kartiček.</p></div>
+      <div><h1 class="page-title">Uživatelé</h1><p class="page-sub">Účty a uložený obsah kartiček.</p></div>
     </div>
     <div class="admin-note">Změny obsahu ukládáš do účtu vybraného uživatele. Zablokovaný účet se nemůže přihlásit.</div>
     <div id="adminContent" class="admin-content"><p class="page-sub">Načítám účty…</p></div>
@@ -837,12 +841,12 @@ function renderAdmin(){
 async function loadAdminContent(container){
   container.innerHTML = '<p class="page-sub">Načítám účty…</p>';
   const [usersResult, recordsResult] = await Promise.all([
-    supabaseClient.functions.invoke('admin-api', { body:{ action:'list-users' } }),
+    supabaseClient.functions.invoke('rapid-task', { body:{ action:'list-users' } }),
     supabaseClient.from('flashcard_data').select('user_id,payload,updated_at'),
   ]);
   if(!container.isConnected) return;
   if(usersResult.error){
-    container.innerHTML = `<p class="admin-error">${escapeHtml(usersResult.error.message)}. Zkontroluj nasazení Edge Function admin-api.</p>`;
+    container.innerHTML = `<p class="admin-error">${escapeHtml(usersResult.error.message)}. Zkontroluj nasazení Edge Function rapid-task.</p>`;
     return;
   }
   if(recordsResult.error){
@@ -913,7 +917,7 @@ function openAdminPayloadEditor(userId, savedPayload, email){
 async function setAdminBan(userId, banned, container){
   const question = banned ? 'Opravdu zablokovat tento účet?' : 'Povolit tomuto účtu znovu přihlášení?';
   if(!confirm(question)) return;
-  const { error } = await supabaseClient.functions.invoke('admin-api', { body:{ action:'set-ban', userId, banned } });
+  const { error } = await supabaseClient.functions.invoke('rapid-task', { body:{ action:'set-ban', userId, banned } });
   if(error){ showToast('Změna účtu se nezdařila: ' + error.message); return; }
   showToast(banned ? 'Účet byl zablokován.' : 'Účet byl obnoven.');
   await loadAdminContent(container);
@@ -1062,7 +1066,7 @@ function renderSidebar(){
     </div>
     <button class="nav-item ${state.view==='home'?'active':''}" data-nav="home">${icon('home')} Domů</button>
     <button class="nav-item ${state.view==='library'?'active':''}" data-nav="library">${icon('folder')} Vaše knihovna</button>
-    ${isAdmin?`<button class="nav-item ${state.view==='admin'?'active':''}" data-nav="admin">${icon('gear')} Administrace</button>`:''}
+    ${isAdmin?`<div class="sidebar-divider"></div><div class="sidebar-section-label admin-nav-label">Administrace</div><button class="nav-item admin-nav-item ${state.view==='admin'?'active':''}" data-nav="admin">${icon('users')} Uživatelé</button>`:''}
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-label">Vaše třídy</div>
     ${state.classes.map(c => `<div class="class-item-wrap"><button class="class-item ${state.activeClassFilter===c?'active':''}" data-class="${escapeHtml(c)}">${classIcon(c)} <span>${escapeHtml(c)}</span></button><span class="class-actions"><button data-edit-class="${escapeHtml(c)}" title="Upravit třídu">${icon('pencil',13)}</button><button data-delete-class="${escapeHtml(c)}" title="Smazat třídu">${icon('trash',13)}</button></span></div>`).join('')}
