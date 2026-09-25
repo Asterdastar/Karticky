@@ -598,6 +598,21 @@
   .account-email{ overflow:hidden; color:var(--text-faint); font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
   .account-signout{ display:flex; align-items:center; gap:9px; width:100%; margin-top:8px; padding:8px 0; border:0; background:none; color:var(--text-dim); cursor:pointer; font:600 13px inherit; text-align:left; }
   .account-signout:hover{ color:var(--text); }
+  .admin-note{ margin-bottom:18px; padding:12px 14px; border-left:3px solid var(--accent); background:var(--panel); color:var(--text-dim); font-size:13px; line-height:1.5; }
+  .admin-content{ min-height:120px; }
+  .admin-table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:12px; background:var(--panel); }
+  .admin-table{ width:100%; border-collapse:collapse; text-align:left; font-size:13px; }
+  .admin-table th,.admin-table td{ padding:12px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .admin-table th{ color:var(--text-faint); font-size:11px; text-transform:uppercase; }
+  .admin-table tr:last-child td{ border-bottom:0; }
+  .admin-table td strong,.admin-table td small{ display:block; }
+  .admin-table td small{ max-width:200px; margin-top:4px; overflow:hidden; color:var(--text-faint); font-size:10px; text-overflow:ellipsis; }
+  .admin-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+  .admin-status{ color:var(--success); font-weight:700; }
+  .admin-status.blocked,.admin-error{ color:var(--danger); }
+  .admin-error{ padding:12px 0; line-height:1.5; }
+  .admin-editor-email{ margin:0 0 12px; }
+  .admin-json-editor{ width:100%; min-height:55vh; resize:vertical; font:12px/1.5 Consolas,monospace; tab-size:2; }
 
   @media (max-width: 900px){
     .sidebar{ display:none; }
@@ -605,6 +620,7 @@
   }
   @media (max-width: 700px){
     .home-set-grid, .home-class-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .admin-table th,.admin-table td{ padding:10px; }
   }
   @media (max-width: 460px){
     .home-set-grid, .home-class-grid{ grid-template-columns:1fr; }
@@ -633,9 +649,10 @@ let authView = 'login';
 let cloudSaveTimer = null;
 let authReady = false;
 let authLoadId = 0;
+let isAdmin = false;
 
 let state = {
-  view: 'home', // home | library | create | study
+  view: 'home', // home | library | create | study | admin
   editingSetId: null,
   activeClassFilter: null,
   sets: [],
@@ -751,11 +768,15 @@ async function activateSession(session){
   currentUser = user;
   authReady = false;
   if(!user){
+    isAdmin = false;
     loadData(null, false);
     authReady = true;
     render();
     return;
   }
+  const { data: roleRow } = await supabaseClient.from('user_roles').select('role').eq('user_id', user.id).maybeSingle();
+  if(loadId !== authLoadId) return;
+  isAdmin = roleRow?.role === 'admin';
   const { data, error } = await supabaseClient.from('flashcard_data').select('payload').eq('user_id', user.id).maybeSingle();
   if(loadId !== authLoadId) return;
   if(error){
@@ -798,6 +819,104 @@ async function initializeAuth(){
   supabaseClient.auth.onAuthStateChange((_event, session) => {
     setTimeout(() => activateSession(session), 0);
   });
+}
+
+function renderAdmin(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-header">
+      <div><h1 class="page-title">Administrace</h1><p class="page-sub">Účty a uložený obsah kartiček.</p></div>
+    </div>
+    <div class="admin-note">Změny obsahu ukládáš do účtu vybraného uživatele. Zablokovaný účet se nemůže přihlásit.</div>
+    <div id="adminContent" class="admin-content"><p class="page-sub">Načítám účty…</p></div>
+  `;
+  loadAdminContent(wrap.querySelector('#adminContent'));
+  return wrap;
+}
+
+async function loadAdminContent(container){
+  container.innerHTML = '<p class="page-sub">Načítám účty…</p>';
+  const [usersResult, recordsResult] = await Promise.all([
+    supabaseClient.functions.invoke('admin-api', { body:{ action:'list-users' } }),
+    supabaseClient.from('flashcard_data').select('user_id,payload,updated_at'),
+  ]);
+  if(!container.isConnected) return;
+  if(usersResult.error){
+    container.innerHTML = `<p class="admin-error">${escapeHtml(usersResult.error.message)}. Zkontroluj nasazení Edge Function admin-api.</p>`;
+    return;
+  }
+  if(recordsResult.error){
+    container.innerHTML = `<p class="admin-error">${escapeHtml(recordsResult.error.message)}. Zkontroluj admin RLS pravidla.</p>`;
+    return;
+  }
+  const users = usersResult.data?.users || [];
+  const records = recordsResult.data || [];
+  const recordsByUser = new Map(records.map(record => [record.user_id, record]));
+  if(users.length === 0){
+    container.innerHTML = '<div class="empty-state"><h3>Zatím tu nejsou žádné účty</h3></div>';
+    return;
+  }
+  container.innerHTML = `
+    <div class="admin-table-wrap"><table class="admin-table">
+      <thead><tr><th>Účet</th><th>Vytvořen</th><th>Obsah</th><th>Stav</th><th>Akce</th></tr></thead>
+      <tbody>${users.map(user => {
+        const record = recordsByUser.get(user.id);
+        const payload = record?.payload || {};
+        const sets = Array.isArray(payload.sets) ? payload.sets : [];
+        const cards = sets.reduce((total, set) => total + (Array.isArray(set.cards) ? set.cards.length : 0), 0);
+        const isBanned = user.bannedUntil && Date.parse(user.bannedUntil) > Date.now();
+        return `<tr>
+          <td><strong>${escapeHtml(user.email || 'Bez e-mailu')}</strong><small>${escapeHtml(user.id)}</small></td>
+          <td>${escapeHtml(formatDate(Date.parse(user.createdAt)))}</td>
+          <td>${sets.length} sad · ${cards} kartiček</td>
+          <td><span class="admin-status ${isBanned?'blocked':''}">${isBanned?'Zablokován':'Aktivní'}</span></td>
+          <td><div class="admin-actions"><button class="btn btn-ghost btn-sm" data-edit-user="${escapeHtml(user.id)}">Upravit data</button><button class="btn ${isBanned?'btn-primary':'btn-outline'} btn-sm" data-ban-user="${escapeHtml(user.id)}" data-banned="${isBanned?'true':'false'}">${isBanned?'Obnovit':'Zablokovat'}</button></div></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+  container.querySelectorAll('[data-edit-user]').forEach(button => {
+    button.onclick = () => openAdminPayloadEditor(button.dataset.editUser, recordsByUser.get(button.dataset.editUser)?.payload || null, users.find(user => user.id === button.dataset.editUser)?.email || '');
+  });
+  container.querySelectorAll('[data-ban-user]').forEach(button => {
+    button.onclick = () => setAdminBan(button.dataset.banUser, button.dataset.banned !== 'true', container);
+  });
+}
+
+function openAdminPayloadEditor(userId, savedPayload, email){
+  const payload = savedPayload || { sets:[], classes:['Maturita'], classIcons:{}, progress:{} };
+  openModal(`
+    <div class="modal-head"><h2>Data účtu</h2><button class="modal-close" data-close>${icon('x',16)}</button></div>
+    <p class="page-sub admin-editor-email">${escapeHtml(email)}</p>
+    <p class="page-sub">Uprav JSON dat tohoto účtu. Zachovej pole <code>sets</code> a <code>classes</code>.</p>
+    <textarea class="field-box admin-json-editor" id="adminJsonEditor" spellcheck="false">${escapeHtml(JSON.stringify(payload,null,2))}</textarea>
+    <div class="class-modal-actions"><button class="btn btn-ghost" data-close>Zrušit</button><button class="btn btn-primary" id="saveAdminPayload">Uložit data</button></div>
+  `, true);
+  document.getElementById('saveAdminPayload').onclick = async () => {
+    let nextPayload;
+    try{ nextPayload = JSON.parse(document.getElementById('adminJsonEditor').value); }
+    catch{ showToast('JSON není platný. Oprav chybu a zkus to znovu.'); return; }
+    if(!nextPayload || typeof nextPayload !== 'object' || Array.isArray(nextPayload) || !Array.isArray(nextPayload.sets) || !Array.isArray(nextPayload.classes)){
+      showToast('Data musí obsahovat pole sets a classes.');
+      return;
+    }
+    if(!nextPayload.classIcons || typeof nextPayload.classIcons !== 'object') nextPayload.classIcons = {};
+    if(!nextPayload.progress || typeof nextPayload.progress !== 'object') nextPayload.progress = {};
+    const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload:nextPayload, updated_at:new Date().toISOString() });
+    if(error){ showToast('Uložení se nezdařilo: ' + error.message); return; }
+    closeModal();
+    showToast('Data účtu byla uložena.');
+    const content = document.getElementById('adminContent');
+    if(content) await loadAdminContent(content);
+  };
+}
+
+async function setAdminBan(userId, banned, container){
+  const question = banned ? 'Opravdu zablokovat tento účet?' : 'Povolit tomuto účtu znovu přihlášení?';
+  if(!confirm(question)) return;
+  const { error } = await supabaseClient.functions.invoke('admin-api', { body:{ action:'set-ban', userId, banned } });
+  if(error){ showToast('Změna účtu se nezdařila: ' + error.message); return; }
+  showToast(banned ? 'Účet byl zablokován.' : 'Účet byl obnoven.');
+  await loadAdminContent(container);
 }
 
 function uid(){ return 'id_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
@@ -921,6 +1040,8 @@ function render(){
   else if(state.view === 'library') main.appendChild(renderLibrary());
   else if(state.view === 'create') main.appendChild(renderCreate());
   else if(state.view === 'study') main.appendChild(renderStudy());
+  else if(state.view === 'admin' && isAdmin) main.appendChild(renderAdmin());
+  else main.appendChild(renderHome());
 
   app.appendChild(main);
   window.requestAnimationFrame(() => window.scrollTo(scrollX, scrollY));
@@ -941,6 +1062,7 @@ function renderSidebar(){
     </div>
     <button class="nav-item ${state.view==='home'?'active':''}" data-nav="home">${icon('home')} Domů</button>
     <button class="nav-item ${state.view==='library'?'active':''}" data-nav="library">${icon('folder')} Vaše knihovna</button>
+    ${isAdmin?`<button class="nav-item ${state.view==='admin'?'active':''}" data-nav="admin">${icon('gear')} Administrace</button>`:''}
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-label">Vaše třídy</div>
     ${state.classes.map(c => `<div class="class-item-wrap"><button class="class-item ${state.activeClassFilter===c?'active':''}" data-class="${escapeHtml(c)}">${classIcon(c)} <span>${escapeHtml(c)}</span></button><span class="class-actions"><button data-edit-class="${escapeHtml(c)}" title="Upravit třídu">${icon('pencil',13)}</button><button data-delete-class="${escapeHtml(c)}" title="Smazat třídu">${icon('trash',13)}</button></span></div>`).join('')}
