@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kartičky</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital@0;1&display=swap" rel="stylesheet">
@@ -620,6 +621,8 @@
   .account-signout:hover{ color:var(--text); }
   .admin-nav-label{ margin-top:16px; }
   .admin-nav-item{ margin-left:8px; width:calc(100% - 8px); }
+  .sidebar-view-switch{ display:flex; width:calc(100% - 16px); align-self:center; }
+  .sidebar-view-switch button{ flex:1; }
   .admin-note{ margin-bottom:18px; padding:12px 14px; border-left:3px solid var(--accent); background:var(--panel); color:var(--text-dim); font-size:13px; line-height:1.5; }
   .admin-content{ min-height:120px; }
   .admin-table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:12px; background:var(--panel); }
@@ -759,10 +762,18 @@ const CLASS_KEY = 'kartlicky_classes_v1';
 const CLASS_ICON_KEY = 'kartlicky_class_icons_v1';
 const CLASS_VISIBILITY_KEY = 'kartlicky_class_visibility_v1';
 const PROGRESS_KEY = 'kartlicky_progress_v1';
+const LIBRARY_VIEW_KEY = 'kartlicky_library_view_v1';
 const SUPABASE_URL = 'https://uwpfwurxoixsijbedtfn.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_QhDs7AiYAueATMVJG3v7Ig_UlqX36yJ';
 const LEGACY_MIGRATED_KEY = 'kartlicky_supabase_legacy_migrated_v1';
 const CLASS_EMOJIS = ['📚','🧪','🌿','🧮','🎨','🌍','💬','🎵','⚽','💻','⭐','🧠'];
+
+function getSavedLibraryView(){
+  try{
+    const savedView = localStorage.getItem(LIBRARY_VIEW_KEY);
+    return savedView === 'grid' || savedView === 'list' ? savedView : 'list';
+  }catch(e){ return 'list'; }
+}
 
 let supabaseClient = null;
 let currentUser = null;
@@ -786,7 +797,7 @@ let state = {
   classVisibility: {},
   progress: {},
   librarySort: 'updated',
-  libraryView: 'grid',
+  libraryView: getSavedLibraryView(),
   study: null // { setId, queue:[idx], pointer, flipped, history:[], settings:{...}, starred:Set }
 };
 
@@ -1251,6 +1262,14 @@ function renderMobileNavBar(){
   return bar;
 }
 
+function setLibraryView(view){
+  if(view !== 'grid' && view !== 'list') return;
+  state.libraryView = view;
+  try{ localStorage.setItem(LIBRARY_VIEW_KEY,view); }catch(e){}
+  mobileNavOpen = false;
+  render();
+}
+
 /* ============================= SIDEBAR ============================= */
 function renderSidebar(){
   const el = document.createElement('div');
@@ -1262,6 +1281,9 @@ function renderSidebar(){
     <button class="nav-item ${state.view==='home'?'active':''}" data-nav="home">${icon('home')} Domů</button>
     <button class="nav-item ${state.view==='library'?'active':''}" data-nav="library">${icon('folder')} Vaše knihovna</button>
     <button class="nav-item ${state.view==='marketplace'?'active':''}" data-nav="marketplace">${icon('users')} Burza</button>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">Zobrazení setů</div>
+    <div class="sidebar-view-switch sort-switch" aria-label="Zobrazení setů"><button type="button" data-library-view="grid" class="${state.libraryView==='grid'?'active':''}">Bloky</button><button type="button" data-library-view="list" class="${state.libraryView==='list'?'active':''}">Řádky</button></div>
     ${isAdmin?`<div class="sidebar-divider"></div><div class="sidebar-section-label admin-nav-label">Administrace</div><button class="nav-item admin-nav-item ${state.view==='admin'?'active':''}" data-nav="admin">${icon('users')} Uživatelé</button>`:''}
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-label">Předměty</div>
@@ -1269,6 +1291,7 @@ function renderSidebar(){
     <button class="nav-item" data-action="new-class">${icon('plus')} Nový předmět</button>
     <div class="account-block"><div class="account-email" title="${escapeHtml(currentUser.email||'')}">${escapeHtml(currentUser.email||'')}</div><button class="account-signout" data-action="signout">${icon('back',16)} Odhlásit se</button></div>
   `;
+  el.querySelectorAll('[data-library-view]').forEach(button => button.onclick = () => setLibraryView(button.dataset.libraryView));
   el.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { mobileNavOpen=false; state.activeClassFilter=null; state.view = b.dataset.nav; render(); });
   el.querySelectorAll('[data-class]').forEach(b => b.onclick = () => {
     mobileNavOpen = false;
@@ -1494,7 +1517,7 @@ function renderHome(){
       </div>`)}
   `;
   wrap.querySelector('#createBtn').onclick = startCreate;
-  wrap.querySelectorAll('[data-home-view]').forEach(button => button.onclick = () => { state.libraryView = button.dataset.homeView; render(); });
+  wrap.querySelectorAll('[data-home-view]').forEach(button => button.onclick = () => setLibraryView(button.dataset.homeView));
   const clearClassFilter = wrap.querySelector('#clearClassFilter');
   if(clearClassFilter) clearClassFilter.onclick = () => { state.activeClassFilter = null; render(); };
   const activeClassGrid = wrap.querySelector('#activeClassGrid');
@@ -1553,7 +1576,7 @@ function renderLibrary(){
     <div class="set-grid library-grid ${state.libraryView==='list'?'list-view':''}" id="grid"></div>
   `;
   wrap.querySelector('#createBtn').onclick = startCreate;
-  wrap.querySelectorAll('[data-view]').forEach(button => button.onclick = () => { state.libraryView = button.dataset.view; render(); });
+  wrap.querySelectorAll('[data-view]').forEach(button => button.onclick = () => setLibraryView(button.dataset.view));
   wrap.querySelectorAll('[data-sort]').forEach(button => button.onclick = () => { state.librarySort = button.dataset.sort; render(); });
   const grid = wrap.querySelector('#grid');
   if(sorted.length === 0){
@@ -1786,9 +1809,7 @@ function renderMarketplace(){
   };
   search.oninput = () => { marketplaceQuery = search.value; renderResults(); };
   wrap.querySelectorAll('[data-market-view]').forEach(button => button.onclick = () => {
-    state.libraryView = button.dataset.marketView;
-    wrap.querySelectorAll('[data-market-view]').forEach(option => option.classList.toggle('active',option===button));
-    renderResults();
+    setLibraryView(button.dataset.marketView);
   });
   if(marketplaceMode === 'sets'){
     subjectToggle.onclick = () => subjectPicker.classList.toggle('open');
@@ -1843,8 +1864,10 @@ function renderSetCard(s){
 
 /* ============================= CREATE / EDIT ============================= */
 let draft = null; // { id, title, description, subjectCode, isPublic, className, cards:[...] }
+let draftReturnView = 'library';
 
 function startCreate(subjectName=''){
+  draftReturnView = state.view === 'study' ? 'library' : state.view;
   draft = { id: uid(), title:'', description:'', subjectCode:'', isPublic:false, className:subjectName, cards:[emptyCard(), emptyCard()] };
   state.editingSetId = null;
   state.view = 'create';
@@ -1853,6 +1876,7 @@ function startCreate(subjectName=''){
 function startEdit(setId){
   const s = state.sets.find(x=>x.id===setId);
   if(!s) return;
+  draftReturnView = state.view === 'study' ? 'library' : state.view;
   draft = JSON.parse(JSON.stringify(s));
   draft.cards = draft.cards.map(normalizeCard);
   state.editingSetId = setId;
@@ -2170,10 +2194,11 @@ function commitDraft(){
     state.sets.push({ ...draft, createdAt: now, updatedAt: now });
   }
   saveSets();
-  const savedId = draft.id;
   draft = null;
   showToast('Sada byla uložena.');
-  openStudy(savedId);
+  state.study = null;
+  state.view = draftReturnView;
+  render();
 }
 
 /* ============================= STUDY ============================= */
