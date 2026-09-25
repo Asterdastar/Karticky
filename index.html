@@ -622,12 +622,12 @@ const STORAGE_KEY = 'kartlicky_sets_v1';
 const CLASS_KEY = 'kartlicky_classes_v1';
 const CLASS_ICON_KEY = 'kartlicky_class_icons_v1';
 const PROGRESS_KEY = 'kartlicky_progress_v1';
-const SUPABASE_URL = 'sb_publishable_QhDs7AiYAueATMVJG3v7Ig_UlqX36yJ';
+const SUPABASE_URL = 'https://uwpfwurxoixsijbedtfn.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_QhDs7AiYAueATMVJG3v7Ig_UlqX36yJ';
 const LEGACY_MIGRATED_KEY = 'kartlicky_supabase_legacy_migrated_v1';
 const CLASS_EMOJIS = ['📚','🧪','🌿','🧮','🎨','🌍','💬','🎵','⚽','💻','⭐','🧠'];
 
-let supabase = null;
+let supabaseClient = null;
 let currentUser = null;
 let authView = 'login';
 let cloudSaveTimer = null;
@@ -694,13 +694,13 @@ function saveProgress(){
 }
 
 function scheduleCloudSave(){
-  if(!supabase || !currentUser) return;
+  if(!supabaseClient || !currentUser) return;
   const userId = currentUser.id;
   const payload = JSON.parse(JSON.stringify({ sets:state.sets, classes:state.classes, classIcons:state.classIcons, progress:state.progress }));
   clearTimeout(cloudSaveTimer);
   cloudSaveTimer = setTimeout(async () => {
     if(currentUser?.id !== userId) return;
-    const { error } = await supabase.from('flashcard_data').upsert({ user_id:userId, payload, updated_at:new Date().toISOString() });
+    const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload, updated_at:new Date().toISOString() });
     if(error) showToast('Synchronizace se nezdařila: ' + error.message);
   }, 500);
 }
@@ -728,15 +728,15 @@ function renderAuth(message='', isError=false){
   document.getElementById('authSwitch').onclick = () => { authView = signingUp?'login':'signup'; renderAuth(); };
   document.getElementById('authForm').onsubmit = async event => {
     event.preventDefault();
-    if(!supabase){ renderAuth('Supabase není nastavený.', true); return; }
+    if(!supabaseClient){ renderAuth('Supabase není nastavený.', true); return; }
     const email = document.getElementById('authEmail').value.trim();
     const password = document.getElementById('authPassword').value;
     const submit = document.querySelector('#authForm button[type="submit"]');
     submit.disabled = true;
     document.querySelector('.auth-message').textContent = 'Ověřuji údaje…';
     const result = signingUp
-      ? await supabase.auth.signUp({ email, password })
-      : await supabase.auth.signInWithPassword({ email, password });
+      ? await supabaseClient.auth.signUp({ email, password })
+      : await supabaseClient.auth.signInWithPassword({ email, password });
     if(result.error){ renderAuth(result.error.message, true); return; }
     if(signingUp && !result.data.session){
       renderAuth('Účet je vytvořený. Potvrď registraci přes odkaz v e-mailu a potom se přihlas.');
@@ -756,7 +756,7 @@ async function activateSession(session){
     render();
     return;
   }
-  const { data, error } = await supabase.from('flashcard_data').select('payload').eq('user_id', user.id).maybeSingle();
+  const { data, error } = await supabaseClient.from('flashcard_data').select('payload').eq('user_id', user.id).maybeSingle();
   if(loadId !== authLoadId) return;
   if(error){
     loadData(null, false);
@@ -787,15 +787,15 @@ async function initializeAuth(){
     renderAuth('Knihovna Supabase se nenačetla. Zkontroluj připojení k internetu a obnov stránku.', true);
     return;
   }
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const { data, error } = await supabase.auth.getSession();
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data, error } = await supabaseClient.auth.getSession();
   if(error){
     authReady = true;
     renderAuth(error.message, true);
     return;
   }
   await activateSession(data.session);
-  supabase.auth.onAuthStateChange((_event, session) => {
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
     setTimeout(() => activateSession(session), 0);
   });
 }
@@ -970,7 +970,7 @@ function renderSidebar(){
     openNewClassModal();
   };
   el.querySelector('[data-action="signout"]').onclick = async () => {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await supabaseClient.auth.signOut();
     if(error) showToast('Odhlášení se nezdařilo: ' + error.message);
   };
   return el;
