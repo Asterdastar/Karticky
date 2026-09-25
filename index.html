@@ -678,9 +678,10 @@
   .market-subject-set-actions .btn{ min-height:32px; }
   .market-subject-footer{ display:flex; justify-content:flex-end; margin-top:4px; }
   .market-preview-content{ min-height:240px; display:flex; flex-direction:column; gap:16px; }
-  .market-preview-card{ min-height:210px; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px; border:1px solid var(--border); border-radius:12px; background:var(--bg-soft); text-align:center; cursor:pointer; }
+  .market-preview-card{ min-height:210px; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px; border:1px solid var(--border); border-radius:12px; background:var(--bg-soft); color:var(--text); font-family:inherit; text-align:center; cursor:pointer; }
   .market-preview-card img{ max-width:100%; max-height:220px; object-fit:contain; border-radius:8px; }
-  .market-preview-text{ font-size:19px; font-weight:700; line-height:1.5; }
+  .market-preview-text{ color:var(--text); font-size:19px; font-weight:700; line-height:1.5; }
+  .market-preview-card small{ color:var(--text-dim); font-size:12px; }
   .market-preview-controls{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .market-preview-counter{ color:var(--text-dim); font-size:13px; font-weight:700; }
   .market-preview-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
@@ -1205,6 +1206,34 @@ function normalizeCard(card){
     termImage: card.termImage || null,
     defImage: card.defImage || card.image || null,
   };
+}
+
+async function imageFileToDataUrl(file){
+  if(typeof createImageBitmap === 'function'){
+    try{
+      const bitmap = await createImageBitmap(file);
+      const maxDimension = 1600;
+      const scale = Math.min(1,maxDimension/Math.max(bitmap.width,bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1,Math.round(bitmap.width*scale));
+      canvas.height = Math.max(1,Math.round(bitmap.height*scale));
+      const context = canvas.getContext('2d');
+      if(context){
+        context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+        const optimized = canvas.toDataURL('image/webp',0.82);
+        bitmap.close();
+        if(optimized.length < file.size*1.4) return optimized;
+      }else{
+        bitmap.close();
+      }
+    }catch(e){}
+  }
+  return new Promise((resolve,reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Soubor se nepodařilo přečíst.'));
+    reader.readAsDataURL(file);
+  });
 }
 
 /* ============================= ROOT RENDER ============================= */
@@ -2088,12 +2117,16 @@ function renderCreate(){
           rebuildRows();
         }
       });
-      imgInput.onchange = () => {
+      imgInput.onchange = async () => {
         const file = imgInput.files[0];
         if(!file) return;
-        const reader = new FileReader();
-        reader.onload = () => { cardData[property] = reader.result; rebuildRows(); };
-        reader.readAsDataURL(file);
+        try{
+          cardData[property] = await imageFileToDataUrl(file);
+          rebuildRows();
+          showToast('Obrázek je přiložený; uloží se společně se setem.');
+        }catch(error){
+          showToast(error.message || 'Obrázek se nepodařilo načíst.');
+        }
       };
     });
     return row;
