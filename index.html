@@ -290,13 +290,14 @@
     width:100%;
     color:var(--text);
     font-size:15px;
+    line-height:1.55;
     margin-bottom:12px;
     outline:none;
     resize:none;
   }
   .field-box::placeholder{ color:var(--text-faint); }
   .field-box:focus{ border-color:var(--accent); }
-  textarea.field-box{ min-height:56px; font-family:inherit; }
+  textarea.field-box{ min-height:56px; font-family:inherit; line-height:1.55; }
   #titleInput{ font-size:19px; font-weight:700; }
   .class-field{ margin-bottom:12px; }
   .class-field-label{ display:block; margin:0 0 7px 3px; color:var(--text-faint); font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
@@ -377,11 +378,16 @@
   }
   .image-drop:hover{ border-color:var(--accent); color:var(--text-dim); }
   .image-drop img{ width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }
-  .image-drop .remove-img{
+  .image-drop-wrap{ position:relative; width:100%; }
+  .image-drop-wrap .remove-img{
     position:absolute; top:3px; right:3px; width:18px;height:18px;border-radius:50%;
-    background:rgba(15,12,34,.85); color:#fff; display:flex;align-items:center;justify-content:center;
+    border:0; padding:0; background:rgba(15,12,34,.85); color:#fff; display:flex;align-items:center;justify-content:center;
     font-size:11px; z-index:2; cursor:pointer;
   }
+  .image-picker-zone{ min-height:170px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:22px; border:1.5px dashed var(--field-border); border-radius:12px; background:var(--field); color:var(--text-dim); text-align:center; cursor:pointer; outline:none; }
+  .image-picker-zone:hover,.image-picker-zone:focus,.image-picker-zone.drag-over{ border-color:var(--accent); background:var(--accent-soft); }
+  .image-picker-zone strong{ color:var(--text); font-size:14px; }
+  .image-picker-zone.processing{ opacity:.65; pointer-events:none; }
 
   .add-card-btn{
     display:flex; align-items:center; justify-content:center; gap:8px;
@@ -445,8 +451,11 @@
   .star-btn.active{ color:var(--star); }
   .flash-face-content{
     flex:1; display:flex; align-items:center; justify-content:center; text-align:center;
-    font-size:clamp(20px,3vw,30px); font-weight:700; line-height:1.4; padding:10px 20px; gap:16px; flex-direction:column;
+    font-size:clamp(20px,3vw,30px); font-weight:700; line-height:1.55; padding:10px 20px; gap:16px; flex-direction:column;
   }
+  .flash-rich-text{ width:min(100%,760px); max-height:100%; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .flash-rich-text ul,.flash-rich-text ol{ display:inline-block; margin:8px 0; padding-left:1.5em; text-align:left; }
+  .flash-rich-text li{ padding-left:3px; }
   .flash-face-content img{ max-width:100%; max-height:300px; border-radius:10px; object-fit:contain; cursor:zoom-in; transition:transform .15s ease; }
   .flash-face-content img:hover{ transform:scale(1.03); }
   .flash-hint{ font-size:14px; color:var(--text-dim); font-weight:600; margin-top:6px; }
@@ -636,6 +645,16 @@
   .admin-error{ padding:12px 0; line-height:1.5; }
   .admin-editor-email{ margin:0 0 12px; }
   .admin-json-editor{ width:100%; min-height:55vh; resize:vertical; font:12px/1.5 Consolas,monospace; tab-size:2; }
+  .admin-tabs{ display:flex; gap:6px; margin:0 0 18px; border-bottom:1px solid var(--border); }
+  .admin-tabs button{ padding:10px 14px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--text-dim); font:700 13px inherit; cursor:pointer; }
+  .admin-tabs button:hover,.admin-tabs button.active{ color:var(--text); }
+  .admin-tabs button.active{ border-bottom-color:var(--accent); }
+  .admin-set-filters{ display:grid; grid-template-columns:minmax(220px,1fr) minmax(200px,.6fr); gap:12px; margin-bottom:16px; }
+  .admin-set-filters .field-box{ min-height:44px; margin:0; }
+  .admin-set-filters select{ width:100%; }
+  .admin-set-count{ margin:0 0 10px; color:var(--text-faint); font-size:12px; }
+  .admin-set-title{ max-width:320px; }
+  .admin-set-title small{ color:var(--text-faint); }
   .marketplace-filters{ display:grid; grid-template-columns:minmax(220px,1fr) minmax(190px,.45fr); gap:12px; margin-bottom:20px; }
   .marketplace-filters.subjects-mode{ grid-template-columns:minmax(0,1fr); }
   .marketplace-view-controls{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin:0 0 16px; }
@@ -725,6 +744,7 @@
   @media (max-width: 700px){
     .home-set-grid, .home-class-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
     .admin-table th,.admin-table td{ padding:10px; }
+    .admin-set-filters{ grid-template-columns:1fr; }
     .marketplace-filters{ grid-template-columns:1fr; }
     .marketplace-view-controls{ flex-wrap:wrap; }
     .marketplace-results-grid.list-view .marketplace-card{ grid-template-columns:minmax(0,1fr) auto; }
@@ -803,6 +823,7 @@ let cloudSaveTimer = null;
 let authReady = false;
 let authLoadId = 0;
 let isAdmin = false;
+let adminSection = 'users';
 let mobileNavOpen = false;
 let marketplaceQuery = '';
 let marketplaceSubject = '';
@@ -1036,12 +1057,18 @@ function renderAdmin(){
   const wrap = document.createElement('div');
   wrap.innerHTML = `
     <div class="page-header">
-      <div><h1 class="page-title">Uživatelé</h1><p class="page-sub">Účty a uložený obsah kartiček.</p></div>
+      <div><h1 class="page-title">Administrace</h1><p class="page-sub">Správa uživatelských účtů a jejich sad.</p></div>
     </div>
-    <div class="admin-note">Změny obsahu ukládáš do účtu vybraného uživatele. Zablokovaný účet se nemůže přihlásit.</div>
-    <div id="adminContent" class="admin-content"><p class="page-sub">Načítám účty…</p></div>
+    <div class="admin-tabs" role="tablist"><button type="button" role="tab" data-admin-section="users" class="${adminSection==='users'?'active':''}">Účty</button><button type="button" role="tab" data-admin-section="sets" class="${adminSection==='sets'?'active':''}">Sady</button></div>
+    <div class="admin-note">${adminSection==='users'?'Změny obsahu ukládáš do účtu vybraného uživatele. Zablokovaný účet se nemůže přihlásit.':'Přehled všech sad ve všech uživatelských účtech. Uložené změny se projeví i v burze.'}</div>
+    <div id="adminContent" class="admin-content"><p class="page-sub">Načítám…</p></div>
   `;
-  loadAdminContent(wrap.querySelector('#adminContent'));
+  wrap.querySelectorAll('[data-admin-section]').forEach(button => button.onclick = () => {
+    adminSection = button.dataset.adminSection;
+    render();
+  });
+  if(adminSection === 'sets') loadAdminSets(wrap.querySelector('#adminContent'));
+  else loadAdminContent(wrap.querySelector('#adminContent'));
   return wrap;
 }
 
@@ -1091,6 +1118,123 @@ async function loadAdminContent(container){
   container.querySelectorAll('[data-ban-user]').forEach(button => {
     button.onclick = () => setAdminBan(button.dataset.banUser, button.dataset.banned !== 'true', container);
   });
+}
+
+async function loadAdminSets(container){
+  container.innerHTML = '<p class="page-sub">Načítám sady…</p>';
+  const [usersResult, recordsResult] = await Promise.all([
+    supabaseClient.functions.invoke('rapid-task', { body:{ action:'list-users' } }),
+    supabaseClient.from('flashcard_data').select('user_id,payload,updated_at'),
+  ]);
+  if(!container.isConnected) return;
+  if(usersResult.error){
+    container.innerHTML = `<p class="admin-error">${escapeHtml(usersResult.error.message)}. Zkontroluj nasazení Edge Function rapid-task.</p>`;
+    return;
+  }
+  if(recordsResult.error){
+    container.innerHTML = `<p class="admin-error">${escapeHtml(recordsResult.error.message)}. Zkontroluj admin RLS pravidla.</p>`;
+    return;
+  }
+
+  const users = usersResult.data?.users || [];
+  const usersById = new Map(users.map(user => [user.id, user]));
+  const recordsByUser = new Map((recordsResult.data || []).map(record => [record.user_id, record]));
+  const sets = [];
+  recordsByUser.forEach((record, userId) => {
+    const user = usersById.get(userId);
+    (Array.isArray(record.payload?.sets) ? record.payload.sets : []).forEach(set => {
+      sets.push({ userId, userEmail:user?.email || 'Bez e-mailu', record, set });
+    });
+  });
+  sets.sort((a,b) => (a.set.title || '').localeCompare(b.set.title || '', 'cs'));
+
+  container.innerHTML = `
+    <div class="admin-set-filters">
+      <input class="field-box" id="adminSetSearch" type="search" placeholder="Hledat název, popis nebo předmět…" aria-label="Hledat sady">
+      <select class="opt-select" id="adminSetOwner" aria-label="Filtrovat podle vlastníka"><option value="">Všichni vlastníci</option>${users.map(user => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.email || 'Bez e-mailu')}</option>`).join('')}</select>
+    </div>
+    <p class="admin-set-count" id="adminSetCount"></p>
+    <div class="admin-table-wrap"><table class="admin-table">
+      <thead><tr><th>Sada</th><th>Vlastník</th><th>Předmět</th><th>Kartičky</th><th>Akce</th></tr></thead>
+      <tbody id="adminSetsBody"></tbody>
+    </table></div>`;
+
+  const searchInput = container.querySelector('#adminSetSearch');
+  const ownerSelect = container.querySelector('#adminSetOwner');
+  const tbody = container.querySelector('#adminSetsBody');
+  const count = container.querySelector('#adminSetCount');
+  const renderRows = () => {
+    const query = searchInput.value.trim().toLocaleLowerCase('cs');
+    const ownerId = ownerSelect.value;
+    const filtered = sets.filter(item => {
+      if(ownerId && item.userId !== ownerId) return false;
+      const searchable = [item.set.title,item.set.description,item.set.className,item.set.subjectCode,item.userEmail].join(' ').toLocaleLowerCase('cs');
+      return !query || searchable.includes(query);
+    });
+    count.textContent = `${filtered.length} z ${sets.length} sad`;
+    tbody.innerHTML = filtered.length ? filtered.map(item => `<tr>
+      <td class="admin-set-title"><strong>${escapeHtml(item.set.title || 'Bez názvu')}</strong><small>${escapeHtml(item.set.description || '')}</small></td>
+      <td>${escapeHtml(item.userEmail)}</td>
+      <td>${escapeHtml(item.set.className || item.set.subjectCode || 'Bez předmětu')}</td>
+      <td>${Array.isArray(item.set.cards) ? item.set.cards.length : 0}</td>
+      <td><button class="btn btn-ghost btn-sm" data-edit-admin-set>Upravit</button></td>
+    </tr>`).join('') : '<tr><td colspan="5">Žádné sady neodpovídají filtru.</td></tr>';
+    tbody.querySelectorAll('[data-edit-admin-set]').forEach((button,index) => {
+      const item = filtered[index];
+      button.onclick = () => openAdminSetEditor(item.userId, item.record.payload, item.set, item.userEmail);
+    });
+  };
+  searchInput.oninput = renderRows;
+  ownerSelect.onchange = renderRows;
+  renderRows();
+}
+
+function openAdminSetEditor(userId, savedPayload, savedSet, email){
+  const payload = savedPayload || { sets:[], classes:[], classIcons:{}, classVisibility:{}, progress:{} };
+  openModal(`
+    <div class="modal-head"><h2>Upravit sadu</h2><button class="modal-close" data-close>${icon('x',16)}</button></div>
+    <p class="page-sub admin-editor-email">${escapeHtml(email)} · ${escapeHtml(savedSet.title || 'Bez názvu')}</p>
+    <p class="page-sub">Uprav JSON této sady. Její ID zůstane zachováno.</p>
+    <textarea class="field-box admin-json-editor" id="adminSetJsonEditor" spellcheck="false">${escapeHtml(JSON.stringify(savedSet,null,2))}</textarea>
+    <div class="class-modal-actions"><button class="btn btn-ghost" data-close>Zrušit</button><button class="btn btn-primary" id="saveAdminSet">Uložit sadu</button></div>
+  `, true);
+  document.getElementById('saveAdminSet').onclick = async () => {
+    let nextSet;
+    try{ nextSet = JSON.parse(document.getElementById('adminSetJsonEditor').value); }
+    catch{ showToast('JSON není platný. Oprav chybu a zkus to znovu.'); return; }
+    if(!nextSet || typeof nextSet !== 'object' || Array.isArray(nextSet) || !Array.isArray(nextSet.cards)){
+      showToast('Sada musí být objekt a obsahovat pole cards.');
+      return;
+    }
+    nextSet.id = savedSet.id;
+    const setIndex = payload.sets.findIndex(set => set.id === savedSet.id);
+    if(setIndex < 0){ showToast('Sada už v tomto účtu neexistuje. Obnov přehled a zkus to znovu.'); return; }
+    const nextPayload = { ...payload, sets:[...payload.sets] };
+    nextPayload.sets[setIndex] = nextSet;
+    const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload:nextPayload, updated_at:new Date().toISOString() });
+    if(error){ showToast('Uložení se nezdařilo: ' + error.message); return; }
+    if(currentUser?.id === userId){
+      clearTimeout(cloudSaveTimer);
+      loadData(nextPayload);
+    }
+    const marketplaceRow = {
+      owner_id:userId,
+      set_id:nextSet.id,
+      title:nextSet.title || 'Bez názvu',
+      description:nextSet.description || '',
+      subject_code:(nextSet.subjectCode || '').trim().toUpperCase(),
+      subject_id:nextSet.className && nextPayload.classVisibility?.[nextSet.className] === true ? nextSet.className : null,
+      cards:nextSet.cards,
+      is_public:nextSet.isPublic === true,
+      updated_at:new Date().toISOString(),
+    };
+    const { error:marketplaceError } = await supabaseClient.from('marketplace_sets').upsert(marketplaceRow);
+    closeModal();
+    if(marketplaceError) showToast('Sada byla uložena, ale synchronizace burzy selhala: ' + marketplaceError.message);
+    else showToast('Sada byla uložena.');
+    const content = document.getElementById('adminContent');
+    if(content) await loadAdminSets(content);
+  };
 }
 
 function openAdminPayloadEditor(userId, savedPayload, email){
@@ -1202,11 +1346,15 @@ function bindEmojiPicker(pickerId, inputId){
 function sanitizeRichText(value){
   const holder = document.createElement('div');
   holder.innerHTML = value || '';
-  const allowed = new Set(['B','STRONG','I','EM','U','BR']);
+  const allowed = new Set(['B','STRONG','I','EM','U','BR','UL','OL','LI']);
   const clean = node => Array.from(node.childNodes).forEach(child => {
     if(child.nodeType !== Node.ELEMENT_NODE) return;
     clean(child);
-    if(!allowed.has(child.tagName)){
+    if(child.tagName === 'DIV' || child.tagName === 'P'){
+      if(child.previousSibling && child.previousSibling.nodeName !== 'BR') node.insertBefore(document.createElement('br'), child);
+      while(child.firstChild) node.insertBefore(child.firstChild, child);
+      child.remove();
+    }else if(!allowed.has(child.tagName)){
       while(child.firstChild) node.insertBefore(child.firstChild, child);
       child.remove();
     }else{
@@ -1272,6 +1420,55 @@ async function compactCardImage(image){
   const response = await fetch(image);
   const blob = await response.blob();
   return imageFileToDataUrl(blob);
+}
+
+function openCardImagePicker(onSelect){
+  openModal(`
+    <div class="modal-head"><h2>Vložit obrázek</h2><button class="modal-close" data-close aria-label="Zavřít">${icon('x',16)}</button></div>
+    <div class="image-picker-zone" id="cardImagePasteZone" role="button" tabindex="0" aria-label="Vložit obrázek ze schránky nebo přetáhnout soubor">
+      ${icon('image',26)}<strong>Vlož obrázek pomocí Ctrl+V</strong><span>Nebo ho sem přetáhni</span>
+    </div>
+    <input type="file" id="cardImageFile" accept="image/*" hidden>
+    <div class="class-modal-actions"><button class="btn btn-ghost" data-close>Zrušit</button><button class="btn btn-primary" id="cardImageBrowse">${icon('image',16)} Nahrát ze zařízení</button></div>
+  `);
+  const overlay = document.getElementById('modalOverlay');
+  const zone = document.getElementById('cardImagePasteZone');
+  const input = document.getElementById('cardImageFile');
+  const processFile = async file => {
+    if(!file) return;
+    if(!file.type.startsWith('image/')){ showToast('Vyber prosím obrázkový soubor.'); return; }
+    zone.classList.add('processing');
+    try{
+      const image = await imageFileToDataUrl(file);
+      closeModal();
+      onSelect(image);
+    }catch(error){
+      showToast(error.message || 'Obrázek se nepodařilo načíst.');
+    }finally{
+      zone.classList.remove('processing');
+    }
+  };
+  const handlePaste = event => {
+    const items = Array.from(event.clipboardData?.items || []);
+    const imageItem = items.find(item => item.type.startsWith('image/'));
+    const file = imageItem?.getAsFile() || Array.from(event.clipboardData?.files || []).find(item => item.type.startsWith('image/'));
+    if(file){ event.preventDefault(); processFile(file); }
+  };
+  overlay.addEventListener('paste', handlePaste);
+  zone.addEventListener('dragover', event => { event.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', event => {
+    event.preventDefault();
+    zone.classList.remove('drag-over');
+    processFile(Array.from(event.dataTransfer?.files || []).find(file => file.type.startsWith('image/')));
+  });
+  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('keydown', event => {
+    if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); input.click(); }
+  });
+  document.getElementById('cardImageBrowse').onclick = () => input.click();
+  input.onchange = () => processFile(input.files[0]);
+  zone.focus();
 }
 
 /* ============================= ROOT RENDER ============================= */
@@ -2073,37 +2270,56 @@ function renderCreate(){
             <button type="button" class="format-btn" data-command="bold" title="Tučně">B</button>
             <button type="button" class="format-btn" data-command="italic" title="Kurzíva"><i>I</i></button>
             <button type="button" class="format-btn" data-command="underline" title="Podtržení"><u>U</u></button>
+            <button type="button" class="format-btn" data-command="insertUnorderedList" title="Odrážkový seznam">•</button>
+            <button type="button" class="format-btn" data-command="insertOrderedList" title="Číslovaný seznam">1.</button>
           </div>
           <div contenteditable="true" class="rich-editor term-input" data-placeholder="Zadejte pojem">${sanitizeRichText(cardData.term)}</div>
           <span class="card-field-label">Pojem</span>
-          <label class="image-drop term-image">
-            ${cardData.termImage ? `<img src="${cardData.termImage}"><span class="remove-img">${icon('x',11)}</span>` : `${icon('image',18)}<span>Obrázek k pojmu</span>`}
-            <input type="file" accept="image/*" style="display:none" class="term-img-input">
-          </label>
+          <div class="image-drop-wrap term-image">
+            <div class="image-drop" role="button" tabindex="0" aria-label="Přidat obrázek k pojmu">
+              ${cardData.termImage ? `<img src="${cardData.termImage}">` : `${icon('image',18)}<span>Obrázek k pojmu</span>`}
+            </div>
+            ${cardData.termImage ? `<button type="button" class="remove-img" aria-label="Odebrat obrázek">${icon('x',11)}</button>` : ''}
+          </div>
         </div>
         <div class="card-field">
           <div class="format-toolbar">
             <button type="button" class="format-btn" data-command="bold" title="Tučně">B</button>
             <button type="button" class="format-btn" data-command="italic" title="Kurzíva"><i>I</i></button>
             <button type="button" class="format-btn" data-command="underline" title="Podtržení"><u>U</u></button>
+            <button type="button" class="format-btn" data-command="insertUnorderedList" title="Odrážkový seznam">•</button>
+            <button type="button" class="format-btn" data-command="insertOrderedList" title="Číslovaný seznam">1.</button>
           </div>
           <div contenteditable="true" class="rich-editor def-input" data-placeholder="Zadejte definici">${sanitizeRichText(cardData.def)}</div>
           <span class="card-field-label">Definice</span>
-          <label class="image-drop def-image">
-            ${cardData.defImage ? `<img src="${cardData.defImage}"><span class="remove-img">${icon('x',11)}</span>` : `${icon('image',18)}<span>Obrázek k definici</span>`}
-            <input type="file" accept="image/*" style="display:none" class="def-img-input">
-          </label>
+          <div class="image-drop-wrap def-image">
+            <div class="image-drop" role="button" tabindex="0" aria-label="Přidat obrázek k definici">
+              ${cardData.defImage ? `<img src="${cardData.defImage}">` : `${icon('image',18)}<span>Obrázek k definici</span>`}
+            </div>
+            ${cardData.defImage ? `<button type="button" class="remove-img" aria-label="Odebrat obrázek">${icon('x',11)}</button>` : ''}
+          </div>
         </div>
       </div>
     `;
     row.querySelector('.term-input').oninput = (e) => { cardData.term = sanitizeRichText(e.target.innerHTML); };
     row.querySelector('.def-input').oninput = (e) => { cardData.def = sanitizeRichText(e.target.innerHTML); };
     row.querySelectorAll('.format-btn').forEach(button => {
-      button.onmousedown = e => e.preventDefault();
+      let savedRange = null;
+      button.onmousedown = e => {
+        e.preventDefault();
+        const selection = window.getSelection();
+        savedRange = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+      };
       button.onclick = () => {
         const editor = button.closest('.card-field').querySelector('.rich-editor');
         editor.focus();
+        if(savedRange){
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(savedRange);
+        }
         document.execCommand(button.dataset.command, false);
+        savedRange = null;
         editor.dispatchEvent(new Event('input', { bubbles:true }));
       };
     });
@@ -2149,27 +2365,26 @@ function renderCreate(){
       draggedCard = null;
       cardsContainer.querySelectorAll('.card-row').forEach(cardRow => cardRow.classList.remove('dragging', 'drag-over'));
     });
-    [['.term-img-input', '.term-image', 'termImage'], ['.def-img-input', '.def-image', 'defImage']].forEach(([inputSelector, dropSelector, property]) => {
-      const imgInput = row.querySelector(inputSelector);
+    [['.term-image', 'termImage'], ['.def-image', 'defImage']].forEach(([dropSelector, property]) => {
       const dropLabel = row.querySelector(dropSelector);
       dropLabel.addEventListener('click', (e) => {
         if(e.target.closest('.remove-img')){
           e.preventDefault();
+          e.stopPropagation();
           cardData[property] = null;
           rebuildRows();
+          return;
         }
-      });
-      imgInput.onchange = async () => {
-        const file = imgInput.files[0];
-        if(!file) return;
-        try{
-          cardData[property] = await imageFileToDataUrl(file);
+        openCardImagePicker(image => {
+          cardData[property] = image;
           rebuildRows();
           showToast('Obrázek je přiložený; uloží se společně se setem.');
-        }catch(error){
-          showToast(error.message || 'Obrázek se nepodařilo načíst.');
-        }
-      };
+        });
+      });
+      dropLabel.addEventListener('keydown', event => {
+        if(event.target.closest('.remove-img') || !event.target.closest('.image-drop')) return;
+        if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); openCardImagePicker(image => { cardData[property] = image; rebuildRows(); }); }
+      });
     });
     return row;
   }
@@ -2295,6 +2510,8 @@ function openStudy(setId){
     setId,
     queue: s.cards.map((_,i)=>i),
     pointer: 0,
+    roundTotal: s.cards.length,
+    reviewed: 0,
     flipped: false,
     showHint: false,
     history: [],
@@ -2327,6 +2544,8 @@ function initQueueFromSettings(){
   if(indices.length === 0) indices = s.cards.map((_,i)=>i);
   st.queue = indices;
   st.pointer = 0;
+  st.roundTotal = indices.length;
+  st.reviewed = 0;
   st.flipped = false;
   st.history = [];
   st.wrong = [];
@@ -2381,7 +2600,7 @@ function renderStudy(){
       </div>
     `;
     const wrongBtn = body.querySelector('#wrongBtn');
-    if(wrongBtn) wrongBtn.onclick = () => { st.queue = [...st.wrong]; st.wrong = []; st.pointer = 0; st.flipped = false; st.history = []; render(); };
+    if(wrongBtn) wrongBtn.onclick = () => { st.queue = [...st.wrong]; st.wrong = []; st.pointer = 0; st.roundTotal = st.queue.length; st.reviewed = 0; st.flipped = false; st.history = []; render(); };
     body.querySelector('#restartBtn2').onclick = () => { initQueueFromSettings(); render(); };
     body.querySelector('#libBtn').onclick = () => { state.view='library'; state.study=null; render(); };
     wrap.appendChild(body);
@@ -2409,7 +2628,7 @@ function renderStudy(){
           </div>
           <div class="flash-face-content">
             ${frontImage ? `<img src="${frontImage}">` : ''}
-            <span>${sanitizeRichText(frontText || '—')}</span>
+            <div class="flash-rich-text">${sanitizeRichText(frontText || '—')}</div>
             ${st.showHint && !st.flipped ? `<div class="flash-hint">Nápověda: ${escapeHtml((backText||'').slice(0, Math.max(3, Math.ceil((backText||'').length/3))))}…</div>` : ''}
           </div>
         </div>
@@ -2420,7 +2639,7 @@ function renderStudy(){
           </div>
           <div class="flash-face-content">
             ${backImage ? `<img src="${backImage}">` : ''}
-            <span>${sanitizeRichText(backText || '—')}</span>
+            <div class="flash-rich-text">${sanitizeRichText(backText || '—')}</div>
           </div>
         </div>
       </div>
@@ -2435,7 +2654,7 @@ function renderStudy(){
     <div class="track-toggle">Sledovat pokrok <button class="switch ${st.settings.trackProgress?'on':''}" id="trackSwitch"><span class="knob"></span></button></div>
     <div class="control-center">
       <button class="round-btn no" id="noBtn">${icon('x',22)}</button>
-      <span class="counter">${st.pointer+1} / ${st.queue.length}</span>
+      <span class="counter">${st.reviewed+1} / ${st.roundTotal}</span>
       <button class="round-btn yes" id="yesBtn">${icon('check',20)}</button>
     </div>
     <div class="control-right">
@@ -2475,13 +2694,14 @@ function renderStudy(){
   if(starBack) starBack.onclick = toggleStar;
 
   function pushHistory(){
-    st.history.push({ queue:[...st.queue], pointer: st.pointer });
+    st.history.push({ queue:[...st.queue], pointer: st.pointer, roundTotal:st.roundTotal, reviewed:st.reviewed });
     if(st.history.length>50) st.history.shift();
   }
   function advance(knew){
     pushHistory();
     const idx = st.queue[st.pointer];
     st.queue.splice(st.pointer,1);
+    st.reviewed += 1;
     if(!knew && st.settings.trackProgress && !st.wrong.includes(idx)) st.wrong.push(idx);
     if(st.pointer >= st.queue.length) st.pointer = 0;
     recordStudyProgress(st.setId, st.queue.length, s.cards.length);
@@ -2516,7 +2736,7 @@ function renderStudy(){
   controls.querySelector('#yesBtn').onclick = () => swipeAndAdvance(true, 'right');
   controls.querySelector('#undoBtn').onclick = () => {
     const prev = st.history.pop();
-    if(prev){ st.queue = prev.queue; st.pointer = prev.pointer; st.flipped=false; render(); }
+    if(prev){ st.queue = prev.queue; st.pointer = prev.pointer; st.roundTotal = prev.roundTotal; st.reviewed = prev.reviewed; st.flipped=false; render(); }
     else showToast('Není co vrátit.');
   };
   controls.querySelector('#shuffleBtn').onclick = () => {
