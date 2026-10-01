@@ -1068,6 +1068,11 @@ let state = {
   study: null // { setId, queue:[idx], pointer, flipped, history:[], settings:{...}, starred:Set }
 };
 
+function sanitizeClassFilters(){
+  if(state.activeClassFilter && !state.classes.includes(state.activeClassFilter)) state.activeClassFilter = null;
+  if(state.librarySubjectFilter && !state.classes.includes(state.librarySubjectFilter)) state.librarySubjectFilter = '';
+}
+
 function loadData(payload=null, useLegacy=false){
   if(payload){
     state.sets = Array.isArray(payload.sets) ? payload.sets : [];
@@ -1077,6 +1082,7 @@ function loadData(payload=null, useLegacy=false){
     state.classVisibility = payload.classVisibility && typeof payload.classVisibility === 'object' ? payload.classVisibility : {};
     delete state.classVisibility.Maturita;
     state.progress = payload.progress && typeof payload.progress === 'object' ? payload.progress : {};
+    sanitizeClassFilters();
     return;
   }
   if(!useLegacy){
@@ -1096,6 +1102,7 @@ function loadData(payload=null, useLegacy=false){
     state.classes = rawC ? JSON.parse(rawC).filter(name => name !== 'Maturita') : [];
     state.sets = state.sets.map(set => set.className === 'Maturita' ? { ...set, className:'' } : set);
   }catch(e){ state.classes = []; }
+  sanitizeClassFilters();
   try{
     const rawIcons = localStorage.getItem(CLASS_ICON_KEY);
     state.classIcons = rawIcons ? JSON.parse(rawIcons) : {};
@@ -1898,6 +1905,7 @@ function renderSidebar(){
     delete state.classVisibility[name];
     state.sets.forEach(s => { if(s.className === name) s.className = ''; });
     if(state.activeClassFilter === name) state.activeClassFilter = null;
+    if(state.librarySubjectFilter === name) state.librarySubjectFilter = '';
     saveClasses(); saveClassIcons(); saveSets(); render();
   });
   el.querySelector('[data-action="new-class"]').onclick = () => {
@@ -2025,6 +2033,7 @@ function openEditClassModal(oldName){
       else if(set && set.className === oldName) set.className = '';
     });
     if(state.activeClassFilter === oldName) state.activeClassFilter = newName;
+    if(state.librarySubjectFilter === oldName || state.librarySubjectFilter === newName) state.librarySubjectFilter = '';
     saveClasses(); saveClassIcons(); saveSets();
     closeModal();
     render();
