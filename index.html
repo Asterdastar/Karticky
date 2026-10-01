@@ -1357,6 +1357,7 @@ function openAdminSetEditor(userId, savedPayload, savedSet, email){
     const marketplaceRow = {
       owner_id:userId,
       set_id:nextSet.id,
+      set_type:nextSet.type === 'quiz' ? 'quiz' : 'flashcards',
       title:nextSet.title || 'Bez názvu',
       description:nextSet.description || '',
       subject_code:(nextSet.subjectCode || '').trim().toUpperCase(),
