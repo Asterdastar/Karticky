@@ -1131,59 +1131,86 @@ function saveProgress(){
   scheduleCloudSave();
 }
 
+function getCloudPayload(){
+  return JSON.parse(JSON.stringify({ sets:state.sets, classes:state.classes, classIcons:state.classIcons, classVisibility:state.classVisibility, progress:state.progress }));
+}
+
+async function persistCloudPayload(payload,userId){
+  if(!supabaseClient || currentUser?.id !== userId) return { saved:false, warning:'' };
+  const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload, updated_at:new Date().toISOString() });
+  if(error) return { saved:false, warning:'Uložení se nezdařilo: ' + error.message };
+
+  const warning = message => showToast('Data byla uložena, ale ' + message);
+  const marketplaceRows = payload.sets.map(set => ({
+    owner_id:userId,
+    set_id:set.id,
+    set_type:getSetType(set),
+    title:set.title || 'Bez názvu',
+    description:set.description || '',
+    subject_code:(set.subjectCode || '').trim().toUpperCase(),
+    subject_id:set.className && payload.classVisibility[set.className] === true ? set.className : null,
+    cards:set.cards || [],
+    sections:set.sections || [],
+    is_public:set.isPublic === true,
+    updated_at:new Date().toISOString(),
+  }));
+  if(marketplaceRows.length){
+    const { error:marketplaceError } = await supabaseClient.from('marketplace_sets').upsert(marketplaceRows);
+    if(marketplaceError){ warning('Burza se nepodařila synchronizovat: ' + marketplaceError.message); return { saved:true, warning:'Burza se nepodařila synchronizovat.' }; }
+  }
+  const subjectRows = payload.classes.map(name => ({
+    owner_id:userId,
+    subject_id:name,
+    name,
+    icon:payload.classIcons[name] || '📚',
+    is_public:payload.classVisibility[name] === true,
+    updated_at:new Date().toISOString(),
+  }));
+  if(subjectRows.length){
+    const { error:subjectError } = await supabaseClient.from('marketplace_subjects').upsert(subjectRows);
+    if(subjectError){ warning('Předměty se nepodařilo synchronizovat. Spusť aktualizovaný admin-setup.sql.'); return { saved:true, warning:'Předměty se nepodařilo synchronizovat.' }; }
+  }
+  const { data:ownedSubjects, error:ownedSubjectsError } = await supabaseClient.from('marketplace_subjects').select('subject_id').eq('owner_id',userId);
+  if(ownedSubjectsError){ warning('Kontrola předmětů se nezdařila: ' + ownedSubjectsError.message); return { saved:true, warning:'Kontrola předmětů se nezdařila.' }; }
+  const activeSubjects = new Set(payload.classes);
+  const removedSubjects = (ownedSubjects || []).map(row => row.subject_id).filter(name => !activeSubjects.has(name));
+  if(removedSubjects.length){
+    const { error:removeSubjectError } = await supabaseClient.from('marketplace_subjects').delete().eq('owner_id',userId).in('subject_id',removedSubjects);
+    if(removeSubjectError) warning('Odstranění předmětu z burzy se nezdařilo: ' + removeSubjectError.message);
+  }
+  const { data:ownedRows, error:ownedError } = await supabaseClient.from('marketplace_sets').select('set_id').eq('owner_id',userId);
+  if(ownedError){ warning('Kontrola burzy se nezdařila: ' + ownedError.message); return { saved:true, warning:'Kontrola burzy se nezdařila.' }; }
+  const activeIds = new Set(payload.sets.map(set => set.id));
+  const removedIds = (ownedRows || []).map(row => row.set_id).filter(setId => !activeIds.has(setId));
+  if(removedIds.length){
+    const { error:removeError } = await supabaseClient.from('marketplace_sets').delete().eq('owner_id',userId).in('set_id',removedIds);
+    if(removeError) warning('Odstranění sady z burzy se nezdařilo: ' + removeError.message);
+  }
+  return { saved:true, warning:'' };
+}
+
+async function flushCloudSave(){
+  clearTimeout(cloudSaveTimer);
+  if(!supabaseClient || !currentUser) return { saved:false, warning:'Nejsi přihlášený. Přihlas se a zkus sadu uložit znovu.' };
+  try{
+    return await persistCloudPayload(getCloudPayload(),currentUser.id);
+  }catch(error){
+    return { saved:false, warning:'Uložení se nezdařilo: ' + (error?.message || 'Zkontroluj připojení a zkus to znovu.') };
+  }
+}
+
 function scheduleCloudSave(){
   if(!supabaseClient || !currentUser) return;
   const userId = currentUser.id;
-  const payload = JSON.parse(JSON.stringify({ sets:state.sets, classes:state.classes, classIcons:state.classIcons, classVisibility:state.classVisibility, progress:state.progress }));
+  const payload = getCloudPayload();
   clearTimeout(cloudSaveTimer);
   cloudSaveTimer = setTimeout(async () => {
     if(currentUser?.id !== userId) return;
-    const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload, updated_at:new Date().toISOString() });
-    if(error){ showToast('Synchronizace se nezdařila: ' + error.message); return; }
-    const marketplaceRows = payload.sets.map(set => ({
-      owner_id:userId,
-      set_id:set.id,
-      set_type:getSetType(set),
-      title:set.title || 'Bez názvu',
-      description:set.description || '',
-      subject_code:(set.subjectCode || '').trim().toUpperCase(),
-      subject_id:set.className && payload.classVisibility[set.className] === true ? set.className : null,
-      cards:set.cards || [],
-      sections:set.sections || [],
-      is_public:set.isPublic === true,
-      updated_at:new Date().toISOString(),
-    }));
-    if(marketplaceRows.length){
-      const { error:marketplaceError } = await supabaseClient.from('marketplace_sets').upsert(marketplaceRows);
-      if(marketplaceError){ showToast('Burza se nepodařila synchronizovat: ' + marketplaceError.message); return; }
-    }
-    const subjectRows = payload.classes.map(name => ({
-      owner_id:userId,
-      subject_id:name,
-      name,
-      icon:payload.classIcons[name] || '📚',
-      is_public:payload.classVisibility[name] === true,
-      updated_at:new Date().toISOString(),
-    }));
-    if(subjectRows.length){
-      const { error:subjectError } = await supabaseClient.from('marketplace_subjects').upsert(subjectRows);
-      if(subjectError){ showToast('Předměty se nepodařilo synchronizovat. Spusť aktualizovaný admin-setup.sql.'); return; }
-    }
-    const { data:ownedSubjects, error:ownedSubjectsError } = await supabaseClient.from('marketplace_subjects').select('subject_id').eq('owner_id',userId);
-    if(ownedSubjectsError){ showToast('Kontrola předmětů se nezdařila: ' + ownedSubjectsError.message); return; }
-    const activeSubjects = new Set(payload.classes);
-    const removedSubjects = (ownedSubjects || []).map(row => row.subject_id).filter(name => !activeSubjects.has(name));
-    if(removedSubjects.length){
-      const { error:removeSubjectError } = await supabaseClient.from('marketplace_subjects').delete().eq('owner_id',userId).in('subject_id',removedSubjects);
-      if(removeSubjectError) showToast('Odstranění předmětu z burzy se nezdařilo: ' + removeSubjectError.message);
-    }
-    const { data:ownedRows, error:ownedError } = await supabaseClient.from('marketplace_sets').select('set_id').eq('owner_id',userId);
-    if(ownedError){ showToast('Kontrola burzy se nezdařila: ' + ownedError.message); return; }
-    const activeIds = new Set(payload.sets.map(set => set.id));
-    const removedIds = (ownedRows || []).map(row => row.set_id).filter(setId => !activeIds.has(setId));
-    if(removedIds.length){
-      const { error:removeError } = await supabaseClient.from('marketplace_sets').delete().eq('owner_id',userId).in('set_id',removedIds);
-      if(removeError) showToast('Odstranění sady z burzy se nezdařilo: ' + removeError.message);
+    try{
+      const result = await persistCloudPayload(payload,userId);
+      if(!result.saved) showToast(result.warning || 'Synchronizace se nezdařila.');
+    }catch(error){
+      showToast('Synchronizace se nezdařila: ' + (error?.message || 'Zkontroluj připojení.'));
     }
   }, 500);
 }
@@ -2641,6 +2668,7 @@ document.addEventListener('click',event=>{
 /* ============================= CREATE / EDIT ============================= */
 let draft = null; // { id, title, description, subjectCode, isPublic, className, cards:[...] }
 let draftReturnView = 'library';
+let draftSaveInProgress = false;
 
 function emptyQuizQuestion(){
   return { question:'', questionImage:null, explanation:'', sectionId:null, options:[{ text:'', correct:true },{ text:'', correct:false }] };
@@ -4171,6 +4199,7 @@ function openAnkiImportModal(){
 }
 
 async function commitDraft(){
+  if(draftSaveInProgress) return;
   if(!draft.title.trim()){ showToast('Zadej prosím název sady.'); return; }
   const validCards = draft.cards.filter(card => isQuizCard(card,draft)
     ? String(card.question || '').trim() || card.questionImage
@@ -4181,6 +4210,14 @@ async function commitDraft(){
     const invalidQuestion = quizCards.find(card => !Array.isArray(card.options) || card.options.length < 2 || card.options.length > 8 || card.options.some(option => !String(option.text || '').trim() && !option.image) || card.options.filter(option => option.correct).length !== 1);
     if(invalidQuestion){ showToast('Každá otázka musí mít 2–8 vyplněných odpovědí a právě jednu správnou.'); return; }
   }
+  draftSaveInProgress = true;
+  const saveButtons = [...document.querySelectorAll('#createTop,.create-footer button')];
+  const saveButtonLabels = saveButtons.map(button => button.textContent);
+  saveButtons.forEach(button => { button.disabled = true; button.textContent = 'Ukládám…'; });
+  const restoreSaveButtons = () => saveButtons.forEach((button,index) => {
+    button.disabled = false;
+    button.textContent = saveButtonLabels[index];
+  });
   try{
     for(const card of validCards) if(isQuizCard(card,draft)){
       card.questionImage = await compactCardImage(card.questionImage);
@@ -4191,6 +4228,8 @@ async function commitDraft(){
         card.image = await compactCardImage(card.image);
     }
   }catch(error){
+    draftSaveInProgress = false;
+    restoreSaveButtons();
     showToast(error.message || 'Obrázek se nepodařilo připravit k uložení.');
     return;
   }
@@ -4200,11 +4239,11 @@ async function commitDraft(){
     const { userId, payload:savedPayload } = state.adminEditingSet;
     const nextSet = { ...draft, updatedAt:now };
     const setIndex = savedPayload.sets.findIndex(set => set.id === draft.id);
-    if(setIndex < 0){ showToast('Sada už v tomto účtu neexistuje. Obnov přehled a zkus to znovu.'); return; }
+    if(setIndex < 0){ draftSaveInProgress = false; restoreSaveButtons(); showToast('Sada už v tomto účtu neexistuje. Obnov přehled a zkus to znovu.'); return; }
     const nextPayload = { ...savedPayload, sets:[...savedPayload.sets] };
     nextPayload.sets[setIndex] = nextSet;
     const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload:nextPayload, updated_at:new Date().toISOString() });
-    if(error){ showToast('Uložení se nezdařilo: ' + error.message); return; }
+    if(error){ draftSaveInProgress = false; restoreSaveButtons(); showToast('Uložení se nezdařilo: ' + error.message); return; }
     if(currentUser?.id === userId){ clearTimeout(cloudSaveTimer); loadData(nextPayload); }
     const { error:marketplaceError } = await supabaseClient.from('marketplace_sets').upsert({
       owner_id:userId,
@@ -4223,19 +4262,29 @@ async function commitDraft(){
     state.adminEditingSet = null;
     state.editingSetId = null;
     state.view = 'admin-sets';
+    draftSaveInProgress = false;
     render();
     showToast(marketplaceError?'Sada byla uložena, ale její synchronizace s burzou selhala: ' + marketplaceError.message:'Sada byla uložena.');
     return;
   }
   const idx = state.sets.findIndex(s => s.id === draft.id);
+  const previousSet = idx >= 0 ? state.sets[idx] : null;
   if(idx >= 0){
     state.sets[idx] = { ...draft, updatedAt: now };
   } else {
     state.sets.push({ ...draft, createdAt: now, updatedAt: now });
   }
-  saveSets();
+  const saveResult = await flushCloudSave();
+  draftSaveInProgress = false;
+  if(!saveResult.saved){
+    if(previousSet) state.sets[idx] = previousSet;
+    else state.sets = state.sets.filter(set => set.id !== draft.id);
+    restoreSaveButtons();
+    showToast(saveResult.warning);
+    return;
+  }
   draft = null;
-  showToast('Sada byla uložena.');
+  showToast(saveResult.warning || 'Sada byla uložena.');
   state.study = null;
   state.view = draftReturnView;
   render();
