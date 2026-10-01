@@ -266,6 +266,7 @@
     position:relative;
   }
   .set-card:hover{ border-color:var(--field-border); transform:translateY(-2px); }
+  .set-card.menu-open{ z-index:9; transform:none; }
   .set-card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; min-width:0; }
   .set-card.has-actions .set-card-top{ padding-right:44px; }
   .set-card-title{ min-width:0; overflow-wrap:anywhere; font-weight:700; font-size:15.5px; line-height:1.3; margin:0; }
@@ -309,7 +310,87 @@
   .empty-state p{ margin:0 0 18px; font-size:14px; }
 
   /* ---------- Create page ---------- */
-  .create-wrap{ max-width:900px; width:100%; margin:0 auto; }
+  .create-wrap{ max-width:1300px; width:100%; margin:0 auto; }
+  .editor-layout{ display:grid; grid-template-columns:minmax(0,1fr) 270px; gap:22px; align-items:start; }
+  .editor-cards-column{ min-width:0; }
+  .section-panel{ position:sticky; top:16px; min-width:0; padding:14px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--panel); }
+  .editor-layout > .section-panel{ top:12px; max-height:calc(100vh - 24px); display:flex; flex-direction:column; overflow:hidden; }
+  .editor-layout > .section-panel.has-many-sections[open]{ height:min(760px,calc(100vh - 24px)); }
+  .section-panel > summary{ display:flex; align-items:center; justify-content:space-between; gap:10px; color:var(--text); font-size:14px; font-weight:800; line-height:1.35; cursor:pointer; list-style:none; flex:0 0 auto; }
+  .section-panel > summary::-webkit-details-marker{ display:none; }
+  .section-panel > summary::after,.section-tree-node > summary::before,.editor-section-group > summary::before{ content:''; width:8px; height:8px; border-right:2px solid var(--text-faint); border-bottom:2px solid var(--text-faint); flex:0 0 auto; transform:rotate(45deg); transition:transform .15s ease; }
+  .section-panel:not([open]) > summary::after,.section-tree-node:not([open]) > summary::before,.editor-section-group:not([open]) > summary::before{ transform:rotate(-45deg); }
+  .section-panel > summary::after{ margin-left:auto; }
+  .section-panel-content{ padding-top:12px; }
+  .editor-layout > .section-panel.has-many-sections[open] > .section-panel-content{ height:min(680px,calc(100vh - 100px)); max-height:min(680px,calc(100vh - 100px)); min-height:0; flex:1 1 0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--field-border) transparent; }
+  .editor-layout > .section-panel[open] > .section-panel-content::-webkit-scrollbar{ width:7px; }
+  .editor-layout > .section-panel[open] > .section-panel-content::-webkit-scrollbar-thumb{ border-radius:8px; background:var(--field-border); }
+  .section-tree{ display:flex; flex-direction:column; gap:5px; }
+  .section-tree-node{ min-width:0; }
+  .section-tree-node > summary{ display:flex; align-items:center; gap:8px; min-height:36px; color:var(--text-dim); font-size:13px; line-height:1.35; cursor:pointer; list-style:none; }
+  .section-tree-node > summary::-webkit-details-marker{ display:none; }
+  .section-tree-node > summary::before{ margin:0 2px; }
+  .section-tree-row{ display:flex; align-items:center; gap:8px; min-height:36px; color:var(--text); font-size:13px; line-height:1.35; font-weight:600; }
+  .section-tree-children > .section-tree-node > summary,.section-tree-children > .section-tree-node > .section-tree-row{ font-size:12.5px; color:var(--text-dim); font-weight:500; }
+  .section-tree-children > .section-tree-node > .section-tree-children > .section-tree-node.section-tree-leaf > .section-tree-row{ color:var(--text); font-size:13.5px; font-weight:600; }
+  .section-tree-leaf > .section-tree-row::before{ content:''; width:8px; height:8px; margin:0 2px; flex:0 0 auto; }
+  .section-tree-children{ margin-left:9px; padding-left:10px; border-left:1px solid var(--border); }
+  .section-tree-label{ min-width:0; overflow-wrap:anywhere; flex:1; }
+  .section-tree-count{ color:var(--text-faint); font-size:11px; font-variant-numeric:tabular-nums; }
+  .section-tree-actions{ display:flex; gap:3px; }
+  .section-tree-actions button{ width:28px; height:28px; border:0; border-radius:8px; background:transparent; color:var(--text-faint); font-size:15px; cursor:pointer; }
+  .section-tree-actions button:hover{ background:var(--panel-2); color:var(--text); }
+  .section-tree-check{ width:16px; height:16px; accent-color:var(--accent); flex:0 0 auto; }
+  .section-panel-actions{ display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:12px; }
+  .section-panel-actions .btn{ justify-content:center; white-space:normal; }
+  .section-panel-empty{ margin:0; color:var(--text-faint); font-size:12px; line-height:1.5; }
+  .editor-section-list{ display:flex; flex-direction:column; gap:22px; }
+  .editor-section-group{ min-width:0; padding:4px 0 14px; }
+  .editor-section-group > summary{ display:flex; align-items:center; gap:12px; min-height:56px; padding:12px 14px; margin-bottom:8px; border-radius:10px; color:var(--text); font-size:15px; font-weight:800; cursor:pointer; list-style:none; }
+  .editor-section-group > summary::-webkit-details-marker{ display:none; }
+  .editor-section-group > summary:hover{ background:var(--panel); }
+  .editor-section-group > summary::before{ width:7px; height:7px; border-color:var(--accent-hover); }
+  .editor-section-group[data-depth="1"] > summary{ font-size:13px; color:var(--text-dim); }
+  .editor-section-group[data-depth="1"] > summary::before{ border-color:var(--text-faint); }
+  .editor-section-group[data-depth="2"] > summary{ font-size:12px; color:var(--text-dim); }
+  .editor-section-group[data-depth="2"] > summary::before{ width:6px; height:6px; }
+  .editor-section-name{ min-width:0; flex:1; overflow-wrap:anywhere; }
+  .editor-section-count{ color:var(--text-faint); font-size:11px; font-weight:600; }
+  .editor-section-children{ display:flex; flex-direction:column; gap:14px; margin:12px 0 4px 20px; padding:4px 0 4px 16px; border-left:1px solid var(--border); }
+  .editor-section-content > .card-row{ margin:14px 10px 22px; padding:22px 22px 18px; }
+  .editor-section-add{ margin:2px 10px 8px; }
+  .editor-section-add-actions{ display:flex; flex-wrap:wrap; gap:8px; margin:2px 10px 8px; }
+  .editor-unassigned{ margin-top:22px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:rgba(26,23,56,.4); }
+  .editor-unassigned > summary{ display:flex; align-items:center; gap:10px; min-height:42px; margin-bottom:10px; padding:6px 8px; color:var(--text-dim); font-size:13px; font-weight:700; cursor:pointer; list-style:none; }
+  .editor-unassigned > summary::-webkit-details-marker{ display:none; }
+  .editor-unassigned > summary::before{ content:''; width:7px; height:7px; border-right:2px solid var(--text-faint); border-bottom:2px solid var(--text-faint); transform:rotate(45deg); transition:transform .15s ease; }
+  .editor-unassigned:not([open]) > summary::before{ transform:rotate(-45deg); }
+  .editor-unassigned .card-row{ margin:12px 8px 20px; padding:22px 22px 18px; }
+  .editor-section-count{ padding:4px 9px; border:1px solid var(--border); border-radius:999px; background:var(--bg-soft); }
+  .section-parent-picker{ display:grid; gap:12px; }
+  .section-parent-selected{ padding:11px 13px; border:1px solid var(--accent); border-radius:10px; background:var(--accent-soft); color:var(--text); font-size:13px; font-weight:700; }
+  .section-parent-options{ display:flex; flex-direction:column; gap:5px; max-height:min(42vh,360px); overflow:auto; padding:4px; border:1px solid var(--border); border-radius:10px; }
+  .section-parent-option{ display:flex; align-items:center; gap:10px; width:100%; min-height:42px; padding:7px 11px; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--text-dim); text-align:left; cursor:pointer; }
+  .section-parent-option:hover{ background:var(--panel-2); color:var(--text); }
+  .section-parent-option.selected{ border-color:var(--accent); background:var(--accent-soft); color:var(--text); }
+  .section-parent-radio{ width:16px; height:16px; border:1.5px solid var(--text-faint); border-radius:50%; flex:0 0 auto; }
+  .section-parent-option.selected .section-parent-radio{ border:5px solid var(--accent-hover); }
+  .section-parent-label{ min-width:0; flex:1; overflow-wrap:anywhere; }
+  .study-layout{ display:grid; grid-template-columns:minmax(0,1fr); gap:20px; align-items:start; flex:1; min-height:0; padding:0 20px; }
+  .study-layout .study-body{ min-width:0; }
+  .study-layout .study-stage,.study-layout .quiz-stage,.study-layout .study-controls,.study-layout .quiz-controls{ max-width:960px; }
+  .study-topbar-actions{ display:flex; align-items:center; gap:8px; }
+  .study-section-overlay{ position:fixed; inset:0; z-index:1000; visibility:hidden; pointer-events:none; transition:visibility .22s; }
+  .study-section-overlay.is-open{ visibility:visible; pointer-events:auto; }
+  .study-section-backdrop{ position:absolute; inset:0; width:100%; height:100%; border:0; background:rgba(5,4,15,.62); opacity:0; cursor:pointer; transition:opacity .22s; }
+  .study-section-drawer{ position:absolute; top:0; right:0; display:flex; flex-direction:column; width:min(320px,calc(100vw - 24px)); height:100vh; height:100dvh; max-height:none; min-width:0; padding:22px; overflow:hidden; border:0; border-left:1px solid var(--border); border-radius:0; background:var(--panel); box-shadow:-18px 0 48px rgba(0,0,0,.32); transform:translateX(100%); transition:transform .22s ease; }
+  .study-section-overlay.is-open .study-section-backdrop{ opacity:1; }
+  .study-section-overlay.is-open .study-section-drawer{ transform:translateX(0); }
+  .study-section-drawer-header{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding-bottom:16px; border-bottom:1px solid var(--border); }
+  .study-section-drawer-header h2{ margin:0; color:var(--text); font-size:17px; line-height:1.35; }
+  .study-section-drawer .section-panel-content{ display:flex; flex:1; flex-direction:column; min-height:0; padding-top:16px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--field-border) transparent; }
+  .study-section-drawer .section-tree{ padding:10px 0; }
+  .study-section-drawer .section-panel-actions{ position:sticky; bottom:0; margin-top:auto; padding-top:14px; background:var(--panel); }
   .create-topbar{
     display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; gap:14px; flex-wrap:wrap;
   }
@@ -390,6 +471,7 @@
     cursor:pointer; display:flex; align-items:center; justify-content:center;
   }
   .card-row-tools button:hover{ background:var(--field); color:var(--text); }
+  .card-row-tools .mixed-card-kind{ width:112px; min-width:0; padding:6px 22px 6px 8px; border-radius:8px; font-size:11px; box-shadow:none; }
   .card-row-fields{ display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:stretch; }
   @media (max-width: 760px){ .card-row-fields{ grid-template-columns:1fr; } }
   .card-field{ display:flex; flex-direction:column; }
@@ -408,10 +490,12 @@
   .quiz-answer-row{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; }
   .quiz-answer-entry{ position:relative; min-width:0; }
   .quiz-answer-entry .field-box{ margin:0; padding-right:50px; border-color:var(--border); background:#13102a; }
+  .quiz-answer-entry.has-image .field-box{ padding-left:68px; }
+  .quiz-answer-image-preview{ position:absolute; top:50%; left:8px; width:48px; height:40px; border-radius:6px; object-fit:contain; transform:translateY(-50%); cursor:zoom-in; }
   .quiz-answer-choice{ position:absolute; top:50%; right:10px; width:34px; height:34px; display:grid; place-items:center; border:1px solid var(--field-border); border-radius:9px; background:#0f0c22; cursor:pointer; transform:translateY(-50%); }
   .quiz-answer-choice input{ position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; }
-  .quiz-answer-checkmark{ width:20px; height:20px; display:grid; place-items:center; border:0; border-radius:5px; background:#0a0818; pointer-events:none; }
-  .quiz-answer-choice input:checked + .quiz-answer-checkmark::after{ content:''; display:block; width:11px; height:11px; border-radius:2px; background:#d9dafb; }
+  .quiz-answer-checkmark{ position:absolute; inset:0; border:0; border-radius:8px; background:transparent; pointer-events:none; }
+  .quiz-answer-choice input:checked + .quiz-answer-checkmark::after{ content:''; position:absolute; inset:4px; border-radius:5px; background:#d9dafb; }
   .quiz-answer-choice:focus-within{ border-color:var(--accent-hover); background:var(--panel-2); }
   .quiz-explanation-input{ min-height:76px; margin-top:12px; resize:vertical; }
   .quiz-explanation-label{ margin-top:14px; }
@@ -453,12 +537,24 @@
   .add-card-btn{
     display:flex; align-items:center; justify-content:center; gap:8px;
     width:100%; padding:15px; border-radius:var(--radius-lg);
-    border:1.5px dashed var(--border); background:transparent; color:var(--text-dim);
+    border:1.5px solid var(--border); background:transparent; color:var(--text-dim);
     font-weight:700; font-size:14px; cursor:pointer; margin:6px 0 30px;
   }
   .add-card-btn:hover{ border-color:var(--accent); color:var(--text); }
 
   .create-footer{ display:flex; justify-content:flex-end; padding-bottom:30px; }
+  @media (max-width: 1050px){
+    .editor-layout{ grid-template-columns:minmax(0,1fr) 245px; gap:14px; }
+  }
+  @media (max-width: 760px){
+    .editor-layout{ grid-template-columns:1fr; }
+    .editor-layout > .section-panel{ position:sticky; top:8px; z-index:12; max-height:min(56vh,480px); grid-row:1; }
+    .editor-layout > .section-panel.has-many-sections[open]{ height:min(56vh,480px); }
+    .editor-layout > .section-panel.has-many-sections[open] > .section-panel-content{ height:min(40vh,420px); max-height:min(40vh,420px); }
+    .editor-layout > .section-panel.has-many-sections[open] > .section-panel-content{ min-height:0; flex:1 1 0; overflow-y:auto; }
+    .editor-cards-column{ grid-row:2; }
+    .study-layout .study-body{ grid-row:1; }
+  }
 
   /* ---------- Study page ---------- */
   .study-topbar{
@@ -525,6 +621,8 @@
   .quiz-option:hover:not(:disabled){ border-color:var(--accent); background:var(--panel-2); }
   .quiz-option.correct{ border-color:var(--success); background:rgba(62,207,142,.14); }
   .quiz-option.incorrect{ border-color:var(--danger); background:rgba(242,112,60,.14); }
+  .quiz-option-content{ display:inline-flex; align-items:center; gap:10px; }
+  .quiz-option-content img{ max-width:min(160px,35vw); max-height:100px; border-radius:7px; object-fit:contain; vertical-align:middle; cursor:zoom-in; }
   .quiz-feedback{ min-height:24px; margin:18px 0 0; color:var(--text-dim); font-weight:700; text-align:center; }
   .quiz-explanation{ margin:8px 0 0; color:var(--text-dim); line-height:1.55; text-align:center; white-space:pre-wrap; overflow-wrap:anywhere; }
   .quiz-controls{ display:flex; justify-content:flex-end; align-items:center; gap:12px; width:100%; max-width:960px; padding:8px 0 26px; }
@@ -644,6 +742,8 @@
   .opt-select:hover, .opt-select:focus{ border-color:var(--accent); }
   .setting-picker{ position:relative; min-width:150px; }
   .setting-picker-current{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px; border:1px solid var(--field-border); border-radius:10px; background:var(--field); color:var(--text); font:700 13px inherit; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.12); }
+  .setting-picker-current > span:last-child{ width:8px; height:8px; flex:0 0 auto; border-right:2px solid var(--text-faint); border-bottom:2px solid var(--text-faint); font-size:0; transform:rotate(45deg); transition:transform .15s ease; }
+  .setting-picker.open .setting-picker-current > span:last-child{ transform:rotate(225deg); }
   .setting-picker-current:hover, .setting-picker.open .setting-picker-current{ border-color:var(--accent); background:var(--panel-2); }
   .setting-picker-menu{ display:none; position:absolute; z-index:25; top:calc(100% + 5px); left:0; right:0; padding:5px; border:1px solid var(--field-border); border-radius:12px; background:var(--field); box-shadow:0 12px 26px rgba(0,0,0,.25); }
   .setting-picker.open .setting-picker-menu{ display:flex; flex-direction:column; gap:2px; }
@@ -766,8 +866,9 @@
   .market-subject-card[aria-expanded="true"]{ border-color:var(--field-border); }
   .market-subject-card-top{ display:flex; align-items:center; gap:8px; }
   .market-subject-card-top .set-card-title{ flex:1; }
-  .market-subject-expand{ display:flex; align-items:center; justify-content:center; width:32px; height:32px; flex:0 0 auto; border:1px solid var(--border); border-radius:9px; background:var(--field); color:var(--text-dim); transition:transform .16s ease; }
-  .market-subject-card[aria-expanded="true"] .market-subject-expand{ transform:rotate(180deg); }
+  .market-subject-expand{ position:relative; display:flex; align-items:center; justify-content:center; width:32px; height:32px; flex:0 0 auto; border:1px solid var(--border); border-radius:9px; background:var(--field); color:transparent; font-size:0; }
+  .market-subject-expand::after{ content:''; width:8px; height:8px; border-right:2px solid var(--text-faint); border-bottom:2px solid var(--text-faint); transform:rotate(45deg); transition:transform .16s ease; }
+  .market-subject-card[aria-expanded="true"] .market-subject-expand::after{ transform:rotate(225deg); }
   .market-subject-sets{ grid-column:1/-1; display:flex; flex-direction:column; gap:8px; padding-top:12px; border-top:1px solid var(--border); }
   .market-subject-set-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid var(--border); border-radius:9px; background:var(--bg-soft); }
   .market-subject-set-info{ min-width:0; }
@@ -1017,12 +1118,13 @@ function scheduleCloudSave(){
       subject_code:(set.subjectCode || '').trim().toUpperCase(),
       subject_id:set.className && payload.classVisibility[set.className] === true ? set.className : null,
       cards:set.cards || [],
+      sections:set.sections || [],
       is_public:set.isPublic === true,
       updated_at:new Date().toISOString(),
     }));
     if(marketplaceRows.length){
       const { error:marketplaceError } = await supabaseClient.from('marketplace_sets').upsert(marketplaceRows);
-      if(marketplaceError){ showToast('Burza se nepodařila synchronizovat. Spusť aktualizovaný admin-setup.sql.'); return; }
+      if(marketplaceError){ showToast('Burza se nepodařila synchronizovat: ' + marketplaceError.message); return; }
     }
     const subjectRows = payload.classes.map(name => ({
       owner_id:userId,
@@ -1363,6 +1465,7 @@ function openAdminSetEditor(userId, savedPayload, savedSet, email){
       subject_code:(nextSet.subjectCode || '').trim().toUpperCase(),
       subject_id:nextSet.className && nextPayload.classVisibility?.[nextSet.className] === true ? nextSet.className : null,
       cards:nextSet.cards,
+      sections:nextSet.sections || [],
       is_public:nextSet.isPublic === true,
       updated_at:new Date().toISOString(),
     };
@@ -1472,12 +1575,21 @@ function setCountLabel(count){
   return `${count} ${count===1?'sada':count>=2&&count<=4?'sady':'sad'}`;
 }
 
+function czechCountNoun(count,singular,few,many){
+  if(count === 1) return singular;
+  if(count >= 2 && count <= 4) return few;
+  return many;
+}
+
 function setItemCountLabel(set){
   const count = Array.isArray(set.cards) ? set.cards.length : 0;
+  if(set.type === 'mixed' || set.set_type === 'mixed' || set.cards?.some(card=>card.kind)) {
+    return `${count} ${czechCountNoun(count,'položka','položky','položek')}`;
+  }
   const isQuiz = set.type === 'quiz' || set.set_type === 'quiz';
   const noun = isQuiz
-    ? (count === 1 ? 'otázka' : count >= 2 && count <= 4 ? 'otázky' : 'otázek')
-    : (count === 1 ? 'kartička' : count >= 2 && count <= 4 ? 'kartičky' : 'kartiček');
+    ? czechCountNoun(count,'otázka','otázky','otázek')
+    : czechCountNoun(count,'kartička','kartičky','kartiček');
   return `${count} ${noun}`;
 }
 
@@ -1517,14 +1629,15 @@ function sanitizeRichText(value){
   return holder.innerHTML;
 }
 
-function emptyCard(){ return { term:'', def:'', termImage:null, defImage:null }; }
-function emptyCardWithText(term, def){ return { term, def, termImage:null, defImage:null }; }
+function emptyCard(){ return { term:'', def:'', termImage:null, defImage:null, sectionId:null }; }
+function emptyCardWithText(term, def){ return { term, def, termImage:null, defImage:null, sectionId:null }; }
 
 function normalizeCard(card){
   return {
     ...card,
     termImage: card.termImage || null,
     defImage: card.defImage || card.image || null,
+    sectionId: typeof card.sectionId === 'string' ? card.sectionId : null,
   };
 }
 
@@ -1872,7 +1985,7 @@ function openAssignClassModal(setId){
     <div class="modal-head"><h2>Přiřadit do předmětu</h2><button class="modal-close" data-close>${icon('x',16)}</button></div>
     <p class="page-sub">Vyber předmět pro set „${escapeHtml(set.title)}“.</p>
     <div class="setting-picker" id="assignClassPicker">
-      <button type="button" class="setting-picker-current" id="assignClassToggle"><span>${selectedClass ? `${escapeHtml(state.classIcons[selectedClass] || '📚')} ${escapeHtml(selectedClass)}` : 'Bez předmětu'}</span><span>⌄</span></button>
+      <button type="button" class="setting-picker-current" id="assignClassToggle" aria-expanded="false"><span>${selectedClass ? `${escapeHtml(state.classIcons[selectedClass] || '📚')} ${escapeHtml(selectedClass)}` : 'Bez předmětu'}</span><span aria-hidden="true"></span></button>
       <div class="setting-picker-menu">
         <button type="button" class="setting-picker-option ${selectedClass===''?'selected':''}" data-assignment-class="">Bez předmětu</button>
         ${state.classes.map(name => `<button type="button" class="setting-picker-option ${selectedClass===name?'selected':''}" data-assignment-class="${escapeHtml(name)}">${classIcon(name)} ${escapeHtml(name)}</button>`).join('')}
@@ -1884,14 +1997,24 @@ function openAssignClassModal(setId){
     </div>
   `);
   const assignClassPicker = document.getElementById('assignClassPicker');
-  document.getElementById('assignClassToggle').onclick = () => assignClassPicker.classList.toggle('open');
+  const assignClassToggle = document.getElementById('assignClassToggle');
+  assignClassToggle.onclick = () => {
+    const isOpen = assignClassPicker.classList.toggle('open');
+    assignClassToggle.setAttribute('aria-expanded',String(isOpen));
+  };
   document.querySelectorAll('[data-assignment-class]').forEach(button => button.onclick = () => {
     selectedClass = button.dataset.assignmentClass;
     document.querySelectorAll('[data-assignment-class]').forEach(option => option.classList.toggle('selected', option === button));
     assignClassPicker.querySelector('#assignClassToggle span').textContent = selectedClass ? `${state.classIcons[selectedClass] || '📚'} ${selectedClass}` : 'Bez předmětu';
     assignClassPicker.classList.remove('open');
+    assignClassToggle.setAttribute('aria-expanded','false');
   });
-  document.getElementById('modalOverlay').addEventListener('click', (e) => { if(!assignClassPicker.contains(e.target)) assignClassPicker.classList.remove('open'); });
+  document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if(!assignClassPicker.contains(e.target)){
+      assignClassPicker.classList.remove('open');
+      assignClassToggle.setAttribute('aria-expanded','false');
+    }
+  });
   document.getElementById('saveClassAssignment').onclick = () => {
     set.className = selectedClass;
     saveSets();
@@ -2085,7 +2208,7 @@ function renderMarketplace(){
     </div>
     <div class="marketplace-filters ${marketplaceMode==='subjects'?'subjects-mode':''}">
       <label class="market-search-label"><span>Hledat</span><input class="field-box" id="marketSearch" type="search" placeholder="${marketplaceMode==='sets'?'Název, popis nebo kód předmětu':'Název předmětu'}" value="${escapeHtml(marketplaceQuery)}"></label>
-      <div class="market-subject-label" id="marketSubjectFilter" style="display:${marketplaceMode==='sets'?'flex':'none'}"><span class="market-filter-label">Kód předmětu</span><div class="setting-picker market-subject-picker" id="marketSubjectPicker"><button type="button" class="setting-picker-current" id="marketSubjectToggle" aria-label="Filtrovat podle kódu předmětu"><span>${marketplaceSubject?escapeHtml(marketplaceSubject):'Všechny kódy'}</span><span>⌄</span></button><div class="setting-picker-menu" id="marketSubjectMenu"></div></div></div>
+      <div class="market-subject-label" id="marketSubjectFilter" style="display:${marketplaceMode==='sets'?'flex':'none'}"><span class="market-filter-label">Kód předmětu</span><div class="setting-picker market-subject-picker" id="marketSubjectPicker"><button type="button" class="setting-picker-current" id="marketSubjectToggle" aria-label="Filtrovat podle kódu předmětu" aria-expanded="false"><span>${marketplaceSubject?escapeHtml(marketplaceSubject):'Všechny kódy'}</span><span aria-hidden="true"></span></button><div class="setting-picker-menu" id="marketSubjectMenu"></div></div></div>
     </div>
     <div id="marketResults" class="market-results"><p class="page-sub">Načítám burzu…</p></div>
   `;
@@ -2108,7 +2231,8 @@ function renderMarketplace(){
     state.sets.push({
       id:uid(), sourceSetId:source.set_id, sourceOwnerId:source.owner_id,
       title:source.title, description:source.description || '', subjectCode:source.subject_code || '',
-      type:source.set_type === 'quiz' ? 'quiz' : 'flashcards', isPublic:false, className:'', cards:JSON.parse(JSON.stringify(source.cards || [])), starred:[],
+      type:source.cards?.some(card=>card.kind) ? 'mixed' : source.set_type === 'quiz' ? 'quiz' : 'flashcards', isPublic:false, className:'', cards:JSON.parse(JSON.stringify(source.cards || [])), starred:[],
+      sections:Array.isArray(source.sections) ? JSON.parse(JSON.stringify(source.sections)) : [],
       createdAt:Date.now(), updatedAt:Date.now(),
     });
     saveSets();
@@ -2137,7 +2261,7 @@ function renderMarketplace(){
     const counter = document.getElementById('marketPreviewCounter');
     const paintCard = () => {
       const card = cards[cardIndex];
-      if(source.set_type === 'quiz'){
+      if(source.set_type === 'quiz' || card.kind === 'quiz'){
         previewCard.classList.remove('has-image');
         previewCard.innerHTML = `<div class="market-preview-quiz"><strong>${escapeHtml(card.question || '')}</strong><ol type="A">${(card.options || []).map(option=>`<li class="${flipped&&option.correct?'correct':''}">${escapeHtml(option.text || '')}</li>`).join('')}</ol><small>${flipped?'Zeleně je označená správná odpověď':'Kliknutím zobrazíš správnou odpověď'}</small></div>`;
         counter.textContent = `${cardIndex+1} / ${cards.length}`;
@@ -2203,7 +2327,7 @@ function renderMarketplace(){
       const isExpanded = expandedSubjects.has(subjectKey);
       return `<article class="set-card marketplace-card market-subject-card" data-subject-card="${escapeHtml(subjectKey)}" aria-expanded="${isExpanded}">
         <button type="button" class="market-subject-card-top" data-toggle-subject="${escapeHtml(subjectKey)}" aria-expanded="${isExpanded}">
-          <span class="market-public-mark" title="Veřejný předmět">${escapeHtml(subject.icon||'📚')}</span><span class="set-card-title">${escapeHtml(subject.name)}</span><span class="market-subject-expand">⌄</span>
+          <span class="market-public-mark" title="Veřejný předmět">${escapeHtml(subject.icon||'📚')}</span><span class="set-card-title">${escapeHtml(subject.name)}</span><span class="market-subject-expand" aria-hidden="true">⌄</span>
         </button>
         <p class="set-card-desc">Veřejný předmět se sdílenými sety kartiček.</p>
         <div class="set-card-meta"><div class="set-card-meta-line"><span>${subjectSets.length} veřejných setů</span><span>${cardCount} položek</span></div></div>
@@ -2253,7 +2377,8 @@ function renderMarketplace(){
         newSets.forEach(set => state.sets.push({
           id:uid(), sourceSetId:set.set_id, sourceOwnerId:set.owner_id,
           title:set.title, description:set.description || '', subjectCode:set.subject_code || '',
-          type:set.set_type === 'quiz' ? 'quiz' : 'flashcards', isPublic:false, className:copiedName, cards:JSON.parse(JSON.stringify(set.cards || [])), starred:[],
+          type:set.cards?.some(card=>card.kind) ? 'mixed' : set.set_type === 'quiz' ? 'quiz' : 'flashcards', isPublic:false, className:copiedName, cards:JSON.parse(JSON.stringify(set.cards || [])), starred:[],
+          sections:Array.isArray(set.sections) ? JSON.parse(JSON.stringify(set.sections)) : [],
           createdAt:now, updatedAt:now,
         }));
         saveSets();
@@ -2265,10 +2390,10 @@ function renderMarketplace(){
   };
   const load = async () => {
     const queryResult = marketplaceMode === 'sets'
-      ? await supabaseClient.from('marketplace_sets').select('owner_id,set_id,title,description,subject_code,subject_id,set_type,cards,updated_at').eq('is_public',true).order('updated_at',{ascending:false})
+      ? await supabaseClient.from('marketplace_sets').select('owner_id,set_id,title,description,subject_code,subject_id,set_type,cards,sections,updated_at').eq('is_public',true).order('updated_at',{ascending:false})
       : await Promise.all([
           supabaseClient.from('marketplace_subjects').select('owner_id,subject_id,name,icon,updated_at').eq('is_public',true).order('name'),
-          supabaseClient.from('marketplace_sets').select('owner_id,set_id,title,description,subject_code,subject_id,set_type,cards,updated_at').eq('is_public',true),
+          supabaseClient.from('marketplace_sets').select('owner_id,set_id,title,description,subject_code,subject_id,set_type,cards,sections,updated_at').eq('is_public',true),
         ]);
     if(!results.isConnected) return;
     const error = marketplaceMode === 'sets' ? queryResult.error : queryResult.find(result=>result.error)?.error;
@@ -2288,6 +2413,7 @@ function renderMarketplace(){
         subjectToggle.querySelector('span').textContent = marketplaceSubject || 'Všechny kódy';
         subjectMenu.querySelectorAll('[data-market-subject]').forEach(item => item.classList.toggle('selected', item === option));
         subjectPicker.classList.remove('open');
+        subjectToggle.setAttribute('aria-expanded','false');
         renderResults();
       });
     }
@@ -2295,8 +2421,16 @@ function renderMarketplace(){
   };
   search.oninput = () => { marketplaceQuery = search.value; renderResults(); };
   if(marketplaceMode === 'sets'){
-    subjectToggle.onclick = () => subjectPicker.classList.toggle('open');
-    wrap.addEventListener('click', event => { if(!subjectPicker.contains(event.target)) subjectPicker.classList.remove('open'); });
+    subjectToggle.onclick = () => {
+      const isOpen = subjectPicker.classList.toggle('open');
+      subjectToggle.setAttribute('aria-expanded',String(isOpen));
+    };
+    wrap.addEventListener('click', event => {
+      if(!subjectPicker.contains(event.target)){
+        subjectPicker.classList.remove('open');
+        subjectToggle.setAttribute('aria-expanded','false');
+      }
+    });
   }
   wrap.querySelectorAll('[data-market-mode]').forEach(button => button.onclick = () => {
     if(button.dataset.marketMode === marketplaceMode) return;
@@ -2340,6 +2474,7 @@ function renderSetCard(s){
   const menuToggle = card.querySelector('[data-act="menu"]');
   const closeActions = () => {
     actions.classList.remove('open');
+    card.classList.remove('menu-open');
     menuToggle.setAttribute('aria-expanded','false');
   };
   menuToggle.onclick = event => {
@@ -2347,8 +2482,10 @@ function renderSetCard(s){
     document.querySelectorAll('.set-card-actions.open').forEach(openMenu => {
       openMenu.classList.remove('open');
       openMenu.querySelector('.set-card-settings')?.setAttribute('aria-expanded','false');
+      openMenu.closest('.set-card')?.classList.remove('menu-open');
     });
     const isOpen = actions.classList.toggle('open');
+    card.classList.toggle('menu-open',isOpen);
     menuToggle.setAttribute('aria-expanded',String(isOpen));
   };
   actions.addEventListener('focusout',event => { if(!actions.contains(event.relatedTarget)) closeActions(); });
@@ -2372,6 +2509,7 @@ document.addEventListener('click',event=>{
   document.querySelectorAll('.set-card-actions.open').forEach(openMenu=>{
     openMenu.classList.remove('open');
     openMenu.querySelector('.set-card-settings')?.setAttribute('aria-expanded','false');
+    openMenu.closest('.set-card')?.classList.remove('menu-open');
   });
 });
 
@@ -2380,13 +2518,35 @@ let draft = null; // { id, title, description, subjectCode, isPublic, className,
 let draftReturnView = 'library';
 
 function emptyQuizQuestion(){
-  return { question:'', questionImage:null, explanation:'', options:[{ text:'', correct:true },{ text:'', correct:false }] };
+  return { question:'', questionImage:null, explanation:'', sectionId:null, options:[{ text:'', correct:true },{ text:'', correct:false }] };
+}
+
+function isQuizCard(card,set){
+  return set?.type === 'quiz' || (set?.type === 'mixed' && card?.kind === 'quiz');
+}
+
+function toFlashcard(card){
+  return {
+    ...emptyCardWithText(card.question || '',card.options?.find(option=>option.correct)?.text || ''),
+    termImage:card.questionImage || null,
+    sectionId:card.sectionId || null,
+  };
+}
+
+function toQuizCard(card){
+  return {
+    ...emptyQuizQuestion(),
+    question:card.term || '',
+    questionImage:card.termImage || card.image || null,
+    sectionId:card.sectionId || null,
+    options:[{ text:card.def || '', correct:true },{ text:'', correct:false }],
+  };
 }
 
 function startCreate(subjectName=''){
   draftReturnView = state.view === 'study' ? 'library' : state.view;
   state.adminEditingSet = null;
-  draft = { id: uid(), type:'flashcards', title:'', description:'', subjectCode:'', isPublic:false, className:subjectName, cards:[emptyCard(), emptyCard()] };
+  draft = { id:uid(), type:'flashcards', title:'', description:'', subjectCode:'', isPublic:false, className:subjectName, sections:[], cards:[emptyCard(), emptyCard()] };
   state.editingSetId = null;
   state.view = 'create';
   render();
@@ -2397,13 +2557,20 @@ function startEdit(setId){
   state.adminEditingSet = null;
   draftReturnView = state.view === 'study' ? 'library' : state.view;
   draft = JSON.parse(JSON.stringify(s));
-  draft.type = draft.type === 'quiz' ? 'quiz' : 'flashcards';
-  draft.cards = draft.cards.map(card => draft.type === 'quiz' ? {
-    question:card.question || '',
-    questionImage:card.questionImage || null,
-    explanation:card.explanation || '',
-    options:Array.isArray(card.options) && card.options.length >= 2 ? card.options : emptyQuizQuestion().options,
-  } : normalizeCard(card));
+  draft.type = ['quiz','mixed'].includes(draft.type) ? draft.type : 'flashcards';
+  draft.sections = normalizeSections(draft.sections);
+  draft.cards = draft.cards.map(card => {
+    if(isQuizCard(card,draft)) return {
+      ...emptyQuizQuestion(),
+      ...card,
+      question:card.question || '',
+      questionImage:card.questionImage || null,
+      sectionId:typeof card.sectionId === 'string' ? card.sectionId : null,
+      options:Array.isArray(card.options) && card.options.length >= 2 ? card.options : emptyQuizQuestion().options,
+      ...(draft.type==='mixed'?{kind:'quiz'}:{}),
+    };
+    return { ...normalizeCard(card), ...(draft.type==='mixed'?{kind:'flashcards'}:{}) };
+  });
   state.editingSetId = setId;
   state.view = 'create';
   render();
@@ -2413,16 +2580,123 @@ function startAdminSetEdit(userId, savedPayload, savedSet, email){
   state.adminEditingSet = { userId, payload:JSON.parse(JSON.stringify(savedPayload)), email };
   draftReturnView = 'admin-sets';
   draft = JSON.parse(JSON.stringify(savedSet));
-  draft.type = draft.type === 'quiz' ? 'quiz' : 'flashcards';
-  draft.cards = draft.cards.map(card => draft.type === 'quiz' ? {
+  draft.type = ['quiz','mixed'].includes(draft.type) ? draft.type : 'flashcards';
+  draft.sections = normalizeSections(draft.sections);
+  draft.cards = draft.cards.map(card => isQuizCard(card,draft) ? {
+    ...emptyQuizQuestion(),
+    ...card,
     question:card.question || '',
     questionImage:card.questionImage || null,
-    explanation:card.explanation || '',
+    sectionId:typeof card.sectionId === 'string' ? card.sectionId : null,
     options:Array.isArray(card.options) && card.options.length >= 2 ? card.options : emptyQuizQuestion().options,
-  } : normalizeCard(card));
+    ...(draft.type==='mixed'?{kind:'quiz'}:{}),
+  } : { ...normalizeCard(card), ...(draft.type==='mixed'?{kind:'flashcards'}:{}) });
   state.editingSetId = savedSet.id;
   state.view = 'create';
   render();
+}
+
+function normalizeSections(sections){
+  if(!Array.isArray(sections)) return [];
+  const ids = new Set();
+  const valid = sections.filter(section => {
+    if(!section || typeof section.id !== 'string' || !section.id || ids.has(section.id)
+      || typeof section.name !== 'string' || !section.name.trim()) return false;
+    ids.add(section.id);
+    return true;
+  })
+    .map(section => ({ id:section.id, name:section.name.trim(), parentId:typeof section.parentId === 'string' ? section.parentId : null }));
+  const knownIds = new Set(valid.map(section=>section.id));
+  const byId = new Map(valid.map(section=>[section.id,section]));
+  return valid.map(section => {
+    let parentId = section.parentId !== section.id && knownIds.has(section.parentId) ? section.parentId : null;
+    const visited = new Set([section.id]);
+    let currentId = parentId;
+    while(currentId){
+      if(visited.has(currentId)){ parentId = null; break; }
+      visited.add(currentId);
+      currentId = byId.get(currentId)?.parentId || null;
+    }
+    return { ...section, parentId };
+  });
+}
+
+function studyCountLabel(count,isQuiz){
+  const forms = isQuiz === 'mixed' ? ['položka','položky','položek'] : isQuiz ? ['otázka','otázky','otázek'] : ['kartička','kartičky','kartiček'];
+  const form = czechCountNoun(count,...forms);
+  return `${count} ${form}`;
+}
+
+function sectionPathLabel(sections, sectionId){
+  const byId = new Map(sections.map(section => [section.id,section]));
+  const names = [];
+  const visited = new Set();
+  let current = byId.get(sectionId);
+  while(current && !visited.has(current.id)){
+    visited.add(current.id);
+    names.unshift(current.name);
+    current = byId.get(current.parentId);
+  }
+  return names.join(' / ');
+}
+
+function sectionDescendantIds(sections, sectionId){
+  const descendants = [];
+  const queue = [sectionId];
+  while(queue.length){
+    const currentId = queue.shift();
+    if(descendants.includes(currentId)) continue;
+    descendants.push(currentId);
+    sections.filter(section => section.parentId === currentId).forEach(section => queue.push(section.id));
+  }
+  return descendants;
+}
+
+function openSectionModal(sections, parentId=null, onCreate=()=>{}){
+  let selectedParentId = parentId;
+  const normalizedSections = normalizeSections(sections);
+  openModal(`
+    <div class="modal-head"><h2>Nový blok</h2><button type="button" class="modal-close" data-close>${icon('x',16)}</button></div>
+    <label class="class-field-label" for="sectionNameInput">Název bloku</label>
+    <input class="field-box" id="sectionNameInput" maxlength="80" placeholder="Např. Přednáška 1">
+    <div class="section-parent-picker">
+      <span class="class-field-label">Umístění bloku</span>
+      <div class="section-parent-selected" id="sectionParentSelected"></div>
+      <div class="section-parent-options" role="radiogroup" aria-label="Nadřazený blok"></div>
+    </div>
+    <div class="class-modal-actions"><button type="button" class="btn btn-ghost" data-close>Zrušit</button><button type="button" class="btn btn-primary" id="createSectionButton">Přidat blok</button></div>
+  `);
+  const input = document.getElementById('sectionNameInput');
+  const selectedLabel = document.getElementById('sectionParentSelected');
+  const options = document.querySelector('.section-parent-options');
+  const candidates = [{id:null,name:'Hlavní blok',depth:0},...normalizedSections.map(section=>({
+    id:section.id,
+    name:sectionPathLabel(normalizedSections,section.id),
+    depth:sectionPathLabel(normalizedSections,section.id).split(' / ').length,
+  }))];
+  const renderOptions = () => {
+    const selected = candidates.find(option=>option.id===selectedParentId);
+    selectedLabel.textContent = `Nadřazený blok: ${selected?.name || 'Hlavní blok'}`;
+    options.innerHTML = candidates.map(option=>`
+      <button type="button" class="section-parent-option ${option.id===selectedParentId?'selected':''}" role="radio" aria-checked="${option.id===selectedParentId}" style="padding-left:${11+Math.max(0,option.depth-1)*16}px" data-parent-section="${escapeHtml(option.id || '')}">
+        <span class="section-parent-radio" aria-hidden="true"></span><span class="section-parent-label">${escapeHtml(option.name)}</span>
+      </button>`).join('');
+    options.querySelectorAll('[data-parent-section]').forEach(button=>button.onclick=()=>{
+      selectedParentId = button.dataset.parentSection || null;
+      renderOptions();
+    });
+  };
+  renderOptions();
+  const save = () => {
+    const name = input.value.trim();
+    if(!name){ showToast('Zadej název bloku.'); input.focus(); return; }
+    const section = { id:uid(), name, parentId:selectedParentId };
+    closeModal();
+    onCreate(section);
+  };
+  document.getElementById('createSectionButton').onclick = save;
+  input.addEventListener('keydown',event=>{ if(event.key==='Enter'){ event.preventDefault(); save(); } });
+  input.focus();
 }
 
 function renderCreate(){
@@ -2438,7 +2712,7 @@ function renderCreate(){
   const top = document.createElement('div');
   top.className = 'create-topbar';
   top.innerHTML = `
-    <h1 class="page-title" style="margin:0">${state.editingSetId ? 'Upravit sadu' : (draft.type==='quiz'?'Vytvořit kvíz':'Vytvořit novou sadu kartiček')}</h1>
+    <h1 class="page-title" style="margin:0">${state.editingSetId ? 'Upravit sadu' : (draft.type==='quiz'?'Vytvořit kvíz':draft.type==='mixed'?'Vytvořit mix':'Vytvořit novou sadu kartiček')}</h1>
     <button class="btn btn-primary" id="createTop">${state.editingSetId ? 'Uložit' : 'Vytvořit'}</button>
   `;
   wrap.appendChild(top);
@@ -2447,17 +2721,24 @@ function renderCreate(){
   modeSwitch.className = 'set-mode-switch';
   modeSwitch.setAttribute('role','group');
   modeSwitch.setAttribute('aria-label','Typ sady');
-  modeSwitch.innerHTML = `<button type="button" data-set-type="flashcards" aria-pressed="${draft.type!=='quiz'}" class="${draft.type==='quiz'?'':'active'}">Kartičky</button><button type="button" data-set-type="quiz" aria-pressed="${draft.type==='quiz'}" class="${draft.type==='quiz'?'active':''}">Kvíz ABC</button>`;
+  modeSwitch.innerHTML = `<button type="button" data-set-type="flashcards" aria-pressed="${draft.type==='flashcards'}" class="${draft.type==='flashcards'?'active':''}">Kartičky</button><button type="button" data-set-type="quiz" aria-pressed="${draft.type==='quiz'}" class="${draft.type==='quiz'?'active':''}">Kvíz ABC</button><button type="button" data-set-type="mixed" aria-pressed="${draft.type==='mixed'}" class="${draft.type==='mixed'?'active':''}">Mix</button>`;
   modeSwitch.querySelectorAll('[data-set-type]').forEach(button => button.onclick = async () => {
     const nextType = button.dataset.setType;
     if(nextType === draft.type) return;
-    const hasContent = draft.cards.some(card => draft.type === 'quiz'
-      ? card.question || card.options?.some(option => option.text)
-      : card.term || card.def);
-    if(hasContent && !await confirmThemed('Změna převede stávající text a správnou odpověď. Ostatní možnosti odpovědí budou odstraněny.',{title:'Změnit typ sady?',confirmLabel:'Změnit typ'})) return;
-    draft.cards = draft.type === 'quiz'
-      ? draft.cards.map(card => ({ ...emptyCardWithText(card.question || '', card.options?.find(option => option.correct)?.text || ''), termImage:card.questionImage || null }))
-      : draft.cards.map(card => ({ ...emptyQuizQuestion(), question:card.term || '', questionImage:card.termImage || card.image || null, options:[{ text:card.def || '', correct:true },{ text:'', correct:false }] }));
+    const hasContent = draft.cards.some(card => isQuizCard(card,draft)
+      ? card.question || card.questionImage || card.options?.some(option => option.text || option.image)
+      : card.term || card.def || card.termImage || card.defImage || card.image);
+    if(nextType==='mixed'){
+      draft.cards = draft.cards.map(card=>({ ...card, kind:isQuizCard(card,draft)?'quiz':'flashcards' }));
+    }else{
+      if(hasContent && !await confirmThemed('Změna převede stávající text a správnou odpověď. Ostatní možnosti odpovědí budou odstraněny.',{title:'Změnit typ sady?',confirmLabel:'Změnit typ'})) return;
+      draft.cards = draft.cards.map(card => {
+        const quizCard = isQuizCard(card,draft);
+        if(nextType==='quiz') return quizCard ? { ...card, kind:undefined } : toQuizCard(card);
+        return quizCard ? toFlashcard(card) : { ...card, kind:undefined };
+      });
+      draft.cards.forEach(card=>{ if(card.kind === undefined) delete card.kind; });
+    }
     draft.type = nextType;
     render();
   });
@@ -2510,21 +2791,31 @@ function renderCreate(){
   classPicker.className = 'setting-picker';
   classPicker.id = 'classPicker';
   classPicker.innerHTML = `
-    <button type="button" class="setting-picker-current" id="classPickerToggle"><span>${draft.className?`${escapeHtml(state.classIcons[draft.className]||'📚')} ${escapeHtml(draft.className)}`:'Bez předmětu'}</span><span>⌄</span></button>
+    <button type="button" class="setting-picker-current" id="classPickerToggle" aria-expanded="false"><span>${draft.className?`${escapeHtml(state.classIcons[draft.className]||'📚')} ${escapeHtml(draft.className)}`:'Bez předmětu'}</span><span aria-hidden="true"></span></button>
     <div class="setting-picker-menu">
       <button type="button" class="setting-picker-option ${draft.className===''?'selected':''}" data-set-class="">Bez předmětu</button>
       ${state.classes.map(name=>`<button type="button" class="setting-picker-option ${draft.className===name?'selected':''}" data-set-class="${escapeHtml(name)}">${escapeHtml(state.classIcons[name]||'📚')} ${escapeHtml(name)}</button>`).join('')}
     </div>
   `;
   classField.appendChild(classPicker);
-  classPicker.querySelector('#classPickerToggle').onclick = () => classPicker.classList.toggle('open');
+  const classPickerToggle = classPicker.querySelector('#classPickerToggle');
+  classPickerToggle.onclick = () => {
+    const isOpen = classPicker.classList.toggle('open');
+    classPickerToggle.setAttribute('aria-expanded',String(isOpen));
+  };
   classPicker.querySelectorAll('[data-set-class]').forEach(option => option.onclick = () => {
     draft.className = option.dataset.setClass;
     classPicker.querySelector('#classPickerToggle span').textContent = draft.className ? `${state.classIcons[draft.className]||'📚'} ${draft.className}` : 'Bez předmětu';
     classPicker.querySelectorAll('[data-set-class]').forEach(item => item.classList.toggle('selected',item===option));
     classPicker.classList.remove('open');
+    classPickerToggle.setAttribute('aria-expanded','false');
   });
-  wrap.addEventListener('click', event => { if(!classPicker.contains(event.target)) classPicker.classList.remove('open'); });
+  wrap.addEventListener('click', event => {
+    if(!classPicker.contains(event.target)){
+      classPicker.classList.remove('open');
+      classPickerToggle.setAttribute('aria-expanded','false');
+    }
+  });
   wrap.appendChild(classField);
 
   // toolbar
@@ -2544,15 +2835,69 @@ function renderCreate(){
   `;
   wrap.appendChild(toolbar);
 
+  const editorLayout = document.createElement('div');
+  editorLayout.className = 'editor-layout';
+  const editorColumn = document.createElement('div');
+  editorColumn.className = 'editor-cards-column';
   const cardsContainer = document.createElement('div');
   cardsContainer.id = 'cardsContainer';
-  wrap.appendChild(cardsContainer);
+  cardsContainer.className = 'editor-section-list';
+  editorColumn.appendChild(cardsContainer);
+  const expandedEditorSections = new Set([...draft.sections.map(section=>section.id),...(!draft.sections.length?['__unassigned__']:[])]);
+  const editorSectionPanel = document.createElement('details');
+  editorSectionPanel.className = 'section-panel';
+  if(draft.sections.length > 8) editorSectionPanel.classList.add('has-many-sections');
+  editorSectionPanel.open = true;
+  editorSectionPanel.innerHTML = `<summary>Bloky a podbloky</summary><div class="section-panel-content"></div>`;
+  const sectionPanelContent = editorSectionPanel.querySelector('.section-panel-content');
+  const renderEditorSectionPanel = () => {
+    sectionPanelContent.innerHTML = `
+      ${draft.sections.length ? '' : '<p class="section-panel-empty">Přidej blok, například přednášku. Podbloky můžeš přidat přímo pod něj.</p>'}
+      <div class="section-tree"></div>
+      <button type="button" class="btn btn-outline btn-sm" data-add-section>${icon('plus',14)} Přidat blok</button>
+    `;
+    const tree = sectionPanelContent.querySelector('.section-tree');
+    const renderNode = (section, depth=0) => {
+      const children = draft.sections.filter(item => item.parentId === section.id);
+      const directCount = draft.cards.filter(card => card.sectionId === section.id).length;
+      const node = document.createElement(children.length ? 'details' : 'div');
+      node.className = 'section-tree-node';
+      if(children.length){
+        node.open = expandedEditorSections.has(section.id);
+        node.innerHTML = `<summary><span class="section-tree-label">${escapeHtml(section.name)}</span><span class="section-tree-count">${directCount}</span><span class="section-tree-actions"><button type="button" data-add-child title="Přidat podblok" aria-label="Přidat podblok">＋</button></span></summary><div class="section-tree-children"></div>`;
+        node.addEventListener('toggle',()=>node.open ? expandedEditorSections.add(section.id) : expandedEditorSections.delete(section.id));
+      }else{
+        node.classList.add('section-tree-leaf');
+        node.innerHTML = `<div class="section-tree-row"><span class="section-tree-label">${escapeHtml(section.name)}</span><span class="section-tree-count">${directCount}</span><span class="section-tree-actions"><button type="button" data-add-child title="Přidat podblok" aria-label="Přidat podblok">＋</button></span></div>`;
+      }
+      node.querySelector('[data-add-child]').onclick = event => {
+        event.preventDefault();
+        event.stopPropagation();
+        openSectionModal(draft.sections,section.id,newSection=>{ draft.sections.push(newSection); expandedEditorSections.add(section.id); expandedEditorSections.add(newSection.id); renderEditorSectionPanel(); rebuildRows(); });
+      };
+      const childWrap = node.querySelector('.section-tree-children');
+      children.forEach(child => childWrap.appendChild(renderNode(child,depth+1)));
+      return node;
+    };
+    const roots = draft.sections.filter(section => !draft.sections.some(parent => parent.id === section.parentId));
+    roots.forEach(section => tree.appendChild(renderNode(section)));
+    sectionPanelContent.querySelector('[data-add-section]').onclick = () => openSectionModal(draft.sections,null,newSection=>{
+      draft.sections.push(newSection);
+      expandedEditorSections.add(newSection.id);
+      renderEditorSectionPanel();
+      rebuildRows();
+    });
+  };
+  renderEditorSectionPanel();
+  editorLayout.append(editorColumn,editorSectionPanel);
+  wrap.appendChild(editorLayout);
   toolbar.querySelector('#importBtn').hidden = draft.type === 'quiz';
-  toolbar.querySelector('#swapBtn').hidden = draft.type === 'quiz';
-  toolbar.querySelector('.suggestions-toggle').hidden = draft.type === 'quiz';
+  toolbar.querySelector('#swapBtn').hidden = draft.type !== 'flashcards';
+  toolbar.querySelector('.suggestions-toggle').hidden = draft.type === 'quiz' || draft.type === 'mixed';
   let draggedCard = null;
 
   function buildRow(cardData, index){
+    const quizCard = isQuizCard(cardData,draft);
     const row = document.createElement('div');
     row.className = 'card-row';
     row.draggable = true;
@@ -2601,7 +2946,23 @@ function renderCreate(){
         </div>
       </div>
     `;
-    if(draft.type === 'quiz'){
+    if(draft.type === 'mixed'){
+      const cardType = document.createElement('select');
+      cardType.className = 'opt-select mixed-card-kind';
+      cardType.setAttribute('aria-label',`Typ položky ${index+1}`);
+      cardType.innerHTML = `<option value="flashcards">Kartička</option><option value="quiz">Otázka ABC</option>`;
+      cardType.value = quizCard ? 'quiz' : 'flashcards';
+      row.querySelector('.card-row-tools').prepend(cardType);
+      cardType.onchange = () => {
+        const cardIndex = draft.cards.indexOf(cardData);
+        if(cardIndex < 0) return;
+        const converted = cardType.value === 'quiz' ? toQuizCard(cardData) : normalizeCard(toFlashcard(cardData));
+        converted.kind = cardType.value;
+        draft.cards[cardIndex] = converted;
+        rebuildRows();
+      };
+    }
+    if(quizCard){
       const fields = row.querySelector('.card-row-fields');
       fields.classList.add('quiz-question-fields');
       fields.innerHTML = `
@@ -2632,7 +2993,8 @@ function renderCreate(){
       const drawAnswers = () => {
         answers.innerHTML = cardData.options.map((option, optionIndex) => `
           <div class="quiz-answer-row">
-            <div class="quiz-answer-entry">
+            <div class="quiz-answer-entry ${option.image?'has-image':''}">
+              ${option.image?`<img class="quiz-answer-image-preview" src="${escapeHtml(option.image)}" alt="Obrázek v možnosti ${optionIndex+1}">`:''}
               <input class="field-box" type="text" value="${escapeHtml(option.text || '')}" placeholder="Možnost ${optionIndex+1}" aria-label="Možnost odpovědi ${optionIndex+1}">
               <label class="quiz-answer-choice" title="Označit správnou odpověď"><input type="radio" name="correctAnswer${index}" ${option.correct?'checked':''} aria-label="Označit tuto odpověď jako správnou"><span class="quiz-answer-checkmark" aria-hidden="true"></span></label>
             </div>
@@ -2640,6 +3002,7 @@ function renderCreate(){
           </div>`).join('');
         answers.querySelectorAll('.quiz-answer-row').forEach((answerRow, optionIndex) => {
           answerRow.querySelector('input[type="text"]').oninput = event => { cardData.options[optionIndex].text = event.target.value; };
+          answerRow.querySelector('.quiz-answer-image-preview')?.addEventListener('click',event=>openImageLightbox(event.currentTarget.src));
           answerRow.querySelector('input[type="radio"]').onchange = () => {
             cardData.options.forEach((option, index) => { option.correct = index === optionIndex; });
             drawAnswers();
@@ -2710,12 +3073,14 @@ function renderCreate(){
     row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
     row.addEventListener('drop', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       row.classList.remove('drag-over');
       if(!draggedCard || draggedCard === cardData) return;
       const fromIndex = draft.cards.indexOf(draggedCard);
       let toIndex = draft.cards.indexOf(cardData);
       draft.cards.splice(fromIndex, 1);
       if(fromIndex < toIndex) toIndex -= 1;
+      draggedCard.sectionId = cardData.sectionId || null;
       draft.cards.splice(toIndex, 0, draggedCard);
       draggedCard = null;
       rebuildRows();
@@ -2724,7 +3089,7 @@ function renderCreate(){
       draggedCard = null;
       cardsContainer.querySelectorAll('.card-row').forEach(cardRow => cardRow.classList.remove('dragging', 'drag-over'));
     });
-    if(draft.type !== 'quiz') [['.term-image', 'termImage'], ['.def-image', 'defImage']].forEach(([dropSelector, property]) => {
+    if(!quizCard) [['.term-image', 'termImage'], ['.def-image', 'defImage']].forEach(([dropSelector, property]) => {
       const dropLabel = row.querySelector(dropSelector);
       dropLabel.addEventListener('click', (e) => {
         if(e.target.closest('.remove-img')){
@@ -2765,17 +3130,126 @@ function renderCreate(){
     return row;
   }
 
-  function rebuildRows(){
+  function createAddCardButton(sectionId=null){
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn btn-outline btn-sm editor-section-add';
+    button.title = sectionId ? `Přidat do „${sectionPathLabel(draft.sections,sectionId)}“` : 'Přidat bez bloku';
+    const addCard = kind => {
+      const card = kind==='quiz' ? emptyQuizQuestion() : emptyCard();
+      card.sectionId = sectionId;
+      if(draft.type==='mixed') card.kind = kind;
+      draft.cards.push(card);
+      rebuildRows();
+    };
+    if(draft.type==='mixed'){
+      const wrapper = document.createElement('div');
+      wrapper.className = 'editor-section-add-actions';
+      ['flashcards','quiz'].forEach(kind=>{
+        const option = document.createElement('button');
+        option.type = 'button';
+        option.className = button.className;
+        option.title = button.title;
+        option.innerHTML = `${icon('plus',14)} ${kind==='quiz'?'Přidat otázku ABC':'Přidat kartičku'}`;
+        option.onclick = ()=>addCard(kind);
+        wrapper.appendChild(option);
+      });
+      return wrapper;
+    }
+    button.innerHTML = `${icon('plus',14)} ${draft.type==='quiz'?'Přidat otázku':'Přidat kartičku'}`;
+    button.onclick = () => addCard(draft.type==='quiz'?'quiz':'flashcards');
+    return button;
+  }
+
+  function renderEditorCardGroups(){
     cardsContainer.innerHTML = '';
-    draft.cards.forEach((c,i) => cardsContainer.appendChild(buildRow(c,i)));
+    const renderGroup = (section,depth=0) => {
+      const group = document.createElement('details');
+      group.className = 'editor-section-group';
+      group.dataset.depth = String(depth);
+      group.open = expandedEditorSections.has(section.id);
+      group.innerHTML = `<summary><span class="editor-section-name">${escapeHtml(section.name)}</span><span class="editor-section-count"></span></summary><div class="editor-section-content"></div>`;
+      group.addEventListener('toggle',()=>group.open ? expandedEditorSections.add(section.id) : expandedEditorSections.delete(section.id));
+      const content = group.querySelector('.editor-section-content');
+      const directCards = draft.cards.filter(card=>card.sectionId===section.id);
+      group.querySelector('.editor-section-count').textContent = studyCountLabel(directCards.length,draft.type==='mixed'?'mixed':draft.type==='quiz');
+      directCards.forEach(card=>content.appendChild(buildRow(card,draft.cards.indexOf(card))));
+      content.appendChild(createAddCardButton(section.id));
+      const children = draft.sections.filter(child=>child.parentId===section.id);
+      if(children.length){
+        const childWrap = document.createElement('div');
+        childWrap.className = 'editor-section-children';
+        children.forEach(child=>childWrap.appendChild(renderGroup(child,depth+1)));
+        content.appendChild(childWrap);
+      }
+      content.addEventListener('dragover',event=>{
+        if(!draggedCard || event.target.closest('.card-row')) return;
+        event.preventDefault();
+        group.classList.add('drag-over');
+      });
+      content.addEventListener('dragleave',event=>{
+        if(!content.contains(event.relatedTarget)) group.classList.remove('drag-over');
+      });
+      content.addEventListener('drop',event=>{
+        if(!draggedCard || event.target.closest('.card-row')) return;
+        event.preventDefault();
+        event.stopPropagation();
+        draggedCard.sectionId = section.id;
+        const fromIndex = draft.cards.indexOf(draggedCard);
+        draft.cards.splice(fromIndex,1);
+        draft.cards.push(draggedCard);
+        draggedCard = null;
+        group.classList.remove('drag-over');
+        rebuildRows();
+      });
+      return group;
+    };
+    const roots = draft.sections.filter(section=>!draft.sections.some(parent=>parent.id===section.parentId));
+    roots.forEach(section=>cardsContainer.appendChild(renderGroup(section)));
+    const assignedIds = new Set(draft.sections.map(section=>section.id));
+    const unassignedCards = draft.cards.filter(card=>!assignedIds.has(card.sectionId));
+    if(unassignedCards.length || !draft.sections.length){
+      const unassigned = document.createElement('details');
+      unassigned.className = 'editor-unassigned';
+      unassigned.open = expandedEditorSections.has('__unassigned__');
+      unassigned.innerHTML = `<summary><span class="editor-section-name">Bez bloku</span><span class="editor-section-count">${studyCountLabel(unassignedCards.length,draft.type==='mixed'?'mixed':draft.type==='quiz')}</span></summary><div class="editor-section-content"></div>`;
+      unassigned.addEventListener('toggle',()=>unassigned.open ? expandedEditorSections.add('__unassigned__') : expandedEditorSections.delete('__unassigned__'));
+      const content = unassigned.querySelector('.editor-section-content');
+      unassignedCards.forEach(card=>content.appendChild(buildRow(card,draft.cards.indexOf(card))));
+      unassigned.addEventListener('dragover',event=>{
+        if(!draggedCard || event.target.closest('.card-row')) return;
+        event.preventDefault();
+      });
+      unassigned.addEventListener('drop',event=>{
+        if(!draggedCard || event.target.closest('.card-row')) return;
+        event.preventDefault();
+        event.stopPropagation();
+        draggedCard.sectionId = null;
+        const fromIndex = draft.cards.indexOf(draggedCard);
+        draft.cards.splice(fromIndex,1);
+        draft.cards.push(draggedCard);
+        draggedCard = null;
+        rebuildRows();
+      });
+      cardsContainer.appendChild(unassigned);
+    }
+  }
+
+  function rebuildRows(){
+    renderEditorCardGroups();
+    renderEditorSectionPanel();
   }
   rebuildRows();
 
-  const addBtn = document.createElement('button');
-  addBtn.className = 'add-card-btn';
-  addBtn.innerHTML = `${icon('plus',18)} ${draft.type==='quiz'?'Přidat otázku':'Přidat kartičku'}`;
-  addBtn.onclick = () => { draft.cards.push(draft.type==='quiz'?emptyQuizQuestion():emptyCard()); rebuildRows(); };
-  wrap.appendChild(addBtn);
+  if(draft.type==='mixed'){
+    editorColumn.appendChild(createAddCardButton(null));
+  }else{
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-card-btn';
+    addBtn.innerHTML = `${icon('plus',18)} ${draft.type==='quiz'?'Přidat otázku bez bloku':'Přidat kartičku bez bloku'}`;
+    addBtn.onclick = () => { draft.cards.push(draft.type==='quiz'?emptyQuizQuestion():emptyCard()); rebuildRows(); };
+    editorColumn.appendChild(addBtn);
+  }
 
   const footer = document.createElement('div');
   footer.className = 'create-footer';
@@ -2784,7 +3258,7 @@ function renderCreate(){
   createBtnBottom.textContent = state.editingSetId ? 'Uložit' : 'Vytvořit';
   createBtnBottom.onclick = commitDraft;
   footer.appendChild(createBtnBottom);
-  wrap.appendChild(footer);
+  editorColumn.appendChild(footer);
 
   top.querySelector('#createTop').onclick = commitDraft;
 
@@ -2801,8 +3275,8 @@ function renderCreate(){
   };
   toolbar.querySelector('#kbdBtn').onclick = () => showToast(`Tip: přetažením ikony ⠿ změníš pořadí ${draft.type==='quiz'?'otázek':'kartiček'}.`);
   toolbar.querySelector('#clearBtn').onclick = async () => {
-    if(await confirmThemed(`Tímto smažeš všechny ${draft.type==='quiz'?'otázky':'kartičky'} z této sady.`,{title:'Smazat celý obsah?',confirmLabel:'Smazat vše',danger:true})){
-      draft.cards = draft.type==='quiz' ? [emptyQuizQuestion(),emptyQuizQuestion()] : [emptyCard(),emptyCard()];
+    if(await confirmThemed(`Tímto smažeš všechny ${draft.type==='quiz'?'otázky':draft.type==='mixed'?'položky':'kartičky'} z této sady.`,{title:'Smazat celý obsah?',confirmLabel:'Smazat vše',danger:true})){
+      draft.cards = draft.type==='quiz' ? [emptyQuizQuestion(),emptyQuizQuestion()] : draft.type==='mixed' ? [{...emptyCard(),kind:'flashcards'},{...emptyQuizQuestion(),kind:'quiz'}] : [emptyCard(),emptyCard()];
       rebuildRows();
     }
   };
@@ -2840,7 +3314,7 @@ function openImportModal(){
     });
     if(newCards.length === 0){ showToast('Nepodařilo se rozpoznat žádné kartičky.'); return; }
     if(draft.cards.length===1 && !draft.cards[0].term && !draft.cards[0].def) draft.cards = [];
-    draft.cards.push(...newCards);
+    draft.cards.push(...newCards.map(card=>draft.type==='mixed'?{...card,kind:'flashcards'}:card));
     closeModal();
     state.view = 'create';
     render();
@@ -2852,6 +3326,7 @@ let ankiRuntimePromise = null;
 const ANKI_JSZIP_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
 const ANKI_SQLJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js';
 const ANKI_SQLJS_WASM_URL = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.wasm';
+const ANKI_ZSTD_URL = 'https://cdn.jsdelivr.net/npm/fzstd@0.1.1/umd/index.js';
 
 function loadScriptOnce(src, isLoaded){
   if(isLoaded()) return Promise.resolve();
@@ -2876,13 +3351,132 @@ function loadAnkiRuntime(){
   return ankiRuntimePromise;
 }
 
+async function loadAnkiZstd(){
+  await loadScriptOnce(ANKI_ZSTD_URL,()=>Boolean(window.fzstd?.decompress));
+  if(!window.fzstd?.decompress) throw new Error('Knihovnu pro komprimovaný export Anki se nepodařilo inicializovat.');
+  return window.fzstd;
+}
+
+function decodeAnkiProto(bytes){
+  const fields = new Map();
+  let offset = 0;
+  const readVarint = () => {
+    let value = 0;
+    let shift = 0;
+    while(offset < bytes.length){
+      const byte = bytes[offset++];
+      value += (byte & 0x7f) * (2 ** shift);
+      if((byte & 0x80) === 0) return value;
+      shift += 7;
+      if(shift > 63) throw new Error('Konfigurace typu poznámky Anki obsahuje neplatná protobuf data.');
+    }
+    throw new Error('Konfigurace typu poznámky Anki je neúplná.');
+  };
+  while(offset < bytes.length){
+    const tag = readVarint();
+    const fieldNumber = Math.floor(tag / 8);
+    const wireType = tag % 8;
+    let value;
+    if(wireType === 0){
+      value = readVarint();
+    }else if(wireType === 1){
+      value = bytes.subarray(offset,offset+8);
+      offset += 8;
+    }else if(wireType === 2){
+      const length = readVarint();
+      value = bytes.subarray(offset,offset+length);
+      offset += length;
+    }else if(wireType === 5){
+      value = bytes.subarray(offset,offset+4);
+      offset += 4;
+    }else{
+      throw new Error('Export Anki obsahuje nepodporovaný typ protobuf pole.');
+    }
+    if(offset > bytes.length) throw new Error('Konfigurace typu poznámky Anki je poškozená.');
+    const values = fields.get(fieldNumber) || [];
+    values.push({ wireType, value });
+    fields.set(fieldNumber,values);
+  }
+  return fields;
+}
+
+function decodeAnkiProtoString(fields,fieldNumber){
+  const value = fields.get(fieldNumber)?.find(field=>field.wireType===2)?.value;
+  return value ? new TextDecoder().decode(value) : '';
+}
+
+function getAnkiMediaEntries(bytes,modernPackage){
+  if(!modernPackage) return Object.entries(JSON.parse(new TextDecoder().decode(bytes))).map(([index,name])=>({index,name}));
+  const mediaEntries = decodeAnkiProto(bytes).get(1) || [];
+  return mediaEntries.filter(entry=>entry.wireType===2).map((entry,index)=>{
+    const fields = decodeAnkiProto(entry.value);
+    return { index:String(index), name:decodeAnkiProtoString(fields,1) };
+  }).filter(entry=>entry.name);
+}
+
+function ankiBytesToBase64(bytes){
+  let binary = '';
+  for(let offset=0;offset<bytes.length;offset+=0x8000){
+    binary += String.fromCharCode(...bytes.subarray(offset,offset+0x8000));
+  }
+  return btoa(binary);
+}
+
+function decodeMediaFilename(value){
+  try{ return decodeURIComponent(value); }catch{ return value; }
+}
+
+function getModernAnkiModels(database){
+  const notetypes = database.exec('SELECT id, name FROM notetypes')[0]?.values || [];
+  const fieldRows = database.exec('SELECT ntid, ord, name FROM fields ORDER BY ntid, ord')[0]?.values || [];
+  const templateRows = database.exec('SELECT ntid, ord, name, config FROM templates ORDER BY ntid, ord')[0]?.values || [];
+  const fieldsByType = new Map();
+  fieldRows.forEach(([typeId,ordinal,name])=>{
+    const fields = fieldsByType.get(String(typeId)) || [];
+    fields.push({ ord:Number(ordinal), name:String(name) });
+    fieldsByType.set(String(typeId),fields);
+  });
+  const templatesByType = new Map();
+  templateRows.forEach(([typeId,ordinal,name,config])=>{
+    const configFields = decodeAnkiProto(config);
+    const templates = templatesByType.get(String(typeId)) || [];
+    templates.push({
+      ord:Number(ordinal),
+      name:String(name),
+      qfmt:decodeAnkiProtoString(configFields,1),
+      afmt:decodeAnkiProtoString(configFields,2),
+    });
+    templatesByType.set(String(typeId),templates);
+  });
+  return Object.fromEntries(notetypes.map(([id,name])=>[String(id),{
+    name:String(name),
+    flds:fieldsByType.get(String(id)) || [],
+    tmpls:templatesByType.get(String(id)) || [],
+  }]));
+}
+
 function ankiHtmlToText(html){
+  const withoutImages = String(html || '').replace(/<img\b[^>]*>/gi,tag=>{
+    const alt = decodeAnkiHtmlAttribute(getAnkiHtmlAttribute(tag,'alt'));
+    return alt ? escapeHtml(alt) : '';
+  });
   const holder = document.createElement('div');
-  holder.innerHTML = String(html || '');
+  holder.innerHTML = withoutImages;
   holder.querySelectorAll('script,style').forEach(node => node.remove());
   holder.querySelectorAll('br').forEach(node => node.replaceWith('\n'));
   holder.querySelectorAll('p,div,li').forEach(node => node.append('\n'));
   return (holder.textContent || '').replace(/\u00a0/g,' ').replace(/[ \t]+\n/g,'\n').trim();
+}
+
+function getAnkiHtmlAttribute(tag,name){
+  const match = tag.match(new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`,'i'));
+  return match ? match[1] ?? match[2] ?? match[3] ?? '' : '';
+}
+
+function decodeAnkiHtmlAttribute(value){
+  const decoder = document.createElement('textarea');
+  decoder.innerHTML = String(value || '');
+  return decoder.value;
 }
 
 function renderAnkiCloze(value, ordinal){
@@ -2916,13 +3510,18 @@ function renderAnkiTemplate(template, fields, ordinal, frontSide=''){
 
 function importAnkiSide(html, media){
   let image = null;
-  const cleaned = String(html || '').replace(/<img\b[^>]*>/gi, tag => {
-    const source = tag.match(/\bsrc\s*=\s*(["'])(.*?)\1/i)?.[2];
-    const alt = tag.match(/\balt\s*=\s*(["'])(.*?)\1/i)?.[2] || '';
-    if(source && media.has(source)) image = image || media.get(source);
+  let missingImages = 0;
+  const withoutImages = String(html || '').replace(/<img\b[^>]*>/gi,tag=>{
+    const source = decodeMediaFilename(decodeAnkiHtmlAttribute(getAnkiHtmlAttribute(tag,'src')));
+    const alt = decodeAnkiHtmlAttribute(getAnkiHtmlAttribute(tag,'alt'));
+    const matchedImage = media.get(source) || media.get(source.split(/[\\/]/).pop());
+    if(matchedImage) image = image || matchedImage;
+    else if(source && !/^data:image\/(?:png|jpe?g|gif|webp|svg\+xml|bmp|avif);base64,/i.test(source)) missingImages += 1;
+    else if(source) image = image || source;
     return alt ? escapeHtml(alt) : '';
-  }).replace(/<hr\b[^>]*>/gi,'<br>').replace(/\[sound:[^\]]+\]/gi,'');
-  return { text:sanitizeRichText(cleaned), image };
+  });
+  const cleaned = withoutImages.replace(/<hr\b[^>]*>/gi,'<br>').replace(/\[sound:[^\]]+\]/gi,'');
+  return { text:sanitizeRichText(cleaned), image, missingImages };
 }
 
 function getAnkiOptionLabel(fieldName){
@@ -2930,7 +3529,7 @@ function getAnkiOptionLabel(fieldName){
   return match ? match[1].toUpperCase() : null;
 }
 
-function detectAnkiQuiz(model, fields){
+function detectAnkiQuiz(model, fields, media=new Map()){
   const definitions = Array.isArray(model.flds) ? model.flds : [];
   let options = definitions.map(field => ({ name:field.name, label:getAnkiOptionLabel(field.name), value:fields[field.name] || '' }))
     .filter(option => option.label && option.value.trim())
@@ -2995,9 +3594,16 @@ function detectAnkiQuiz(model, fields){
   const explanation = explanationField
     ? ankiHtmlToText(fields[explanationField.name])
     : markedAnswer ? [markedAnswer.lines[markedAnswer.matchIndex].match(answerMarker)?.[2] || '', ...markedAnswer.lines.slice(markedAnswer.matchIndex+1)].join('\n').trim() : '';
+  const parsedOptions = options.map(option=>{
+    const side = importAnkiSide(option.value,media);
+    return { text:ankiHtmlToText(option.value), image:side.image, missingImages:side.missingImages };
+  });
+  const questionSide = importAnkiSide(questionValue,media);
   return {
     question:ankiHtmlToText(questionValue),
-    options:options.map((option,index) => ({ text:ankiHtmlToText(option.value), correct:index === (correctIndex < 0 ? 0 : correctIndex) })),
+    questionImage:questionSide.image,
+    missingImages:questionSide.missingImages + parsedOptions.reduce((total,option)=>total+option.missingImages,0),
+    options:parsedOptions.map((option,index) => ({ text:option.text, image:option.image, correct:index === (correctIndex < 0 ? 0 : correctIndex) })),
     explanation,
     needsCorrectChoice:correctIndex < 0,
   };
@@ -3023,13 +3629,60 @@ function splitAnkiTextRow(line, separator){
   return fields;
 }
 
+function getAnkiDeckPath(fields, names){
+  const deckField = names.find(name=>/^(?:deck|deck name|bal[ií]ček)$/i.test(name.trim()));
+  const explicitDeck = deckField ? String(fields[deckField] || '').trim() : '';
+  const taggedDeck = String(fields.Tags || fields.tags || fields.Štítky || '')
+    .split(/\s+/)
+    .find(tag=>/^deck:/i.test(tag));
+  const deckName = explicitDeck || (taggedDeck ? taggedDeck.slice(taggedDeck.indexOf(':')+1) : '');
+  return deckName.split('::').map(name=>name.trim()).filter(Boolean);
+}
+
+function getOrCreateAnkiSectionPath(path,sections,sectionByPath){
+  let parentId = null;
+  const currentPath = [];
+  path.forEach(name=>{
+    currentPath.push(name);
+    const key = currentPath.join('::');
+    let section = sectionByPath.get(key);
+    if(!section){
+      section = { id:uid(), name, parentId };
+      sections.push(section);
+      sectionByPath.set(key,section);
+    }
+    parentId = section.id;
+  });
+  return parentId;
+}
+
+function mergeImportedAnkiSections(targetSections,importedSections){
+  const merged = normalizeSections(targetSections);
+  const imported = normalizeSections(importedSections);
+  const idMap = new Map();
+  const pending = [...imported];
+  while(pending.length){
+    const readyIndex = pending.findIndex(section=>!section.parentId || idMap.has(section.parentId));
+    if(readyIndex < 0) break;
+    const [section] = pending.splice(readyIndex,1);
+    const parentId = section.parentId ? idMap.get(section.parentId) : null;
+    const matching = merged.find(existing=>existing.parentId===parentId && existing.name===section.name);
+    const id = matching?.id || (merged.some(existing=>existing.id===section.id) ? uid() : section.id);
+    if(!matching) merged.push({ ...section, id, parentId });
+    idMap.set(section.id,id);
+  }
+  return { sections:merged, sectionIdMap:idMap };
+}
+
 function getAnkiQuizCards(parsed){
   const convertedCards = parsed.flashcards
     .filter(card => ankiHtmlToText(card.term) && ankiHtmlToText(card.def))
     .map(card => ({
       question:ankiHtmlToText(card.term),
+      questionImage:card.termImage || null,
       explanation:'',
-      options:[{ text:ankiHtmlToText(card.def), correct:true },{ text:'Nevím', correct:false }],
+      sectionId:card.sectionId || null,
+      options:[{ text:ankiHtmlToText(card.def), image:card.defImage || null, correct:true },{ text:'Nevím', image:null, correct:false }],
     }));
   return [...parsed.quizCards,...convertedCards];
 }
@@ -3038,6 +3691,7 @@ async function parseAnkiTextExport(file){
   const source = (await file.text()).replace(/^\uFEFF/,'');
   let separator = '\t';
   let columns = [];
+  let defaultDeck = '';
   const dataLines = [];
   source.split(/\r?\n/).forEach(line => {
     if(line.startsWith('#separator:')){
@@ -3045,6 +3699,8 @@ async function parseAnkiTextExport(file){
       separator = ({ tab:'\t', comma:',', semicolon:';', pipe:'|' })[value] || value;
     }else if(line.startsWith('#columns:')){
       columns = splitAnkiTextRow(line.slice('#columns:'.length),separator).map(name=>name.trim()).filter(Boolean);
+    }else if(line.startsWith('#deck:')){
+      defaultDeck = line.slice('#deck:'.length).trim();
     }else if(line.startsWith('#') || !line.trim()){
       return;
     }else{
@@ -3053,17 +3709,25 @@ async function parseAnkiTextExport(file){
   });
   const flashcards = [];
   const quizCards = [];
+  const sections = [];
+  const sectionByPath = new Map();
   let uncheckedAnswers = 0;
+  let missingImages = 0;
   dataLines.forEach(line => {
     const values = splitAnkiTextRow(line,separator);
     if(values.length < 2) return;
     const names = columns.length ? columns : values.map((value,index)=>index===0?'Front':index===1?'Back':`Field ${index+1}`);
     const fields = Object.fromEntries(names.map((name,index)=>[name,values[index] || '']));
+    const sectionPath = getAnkiDeckPath(fields,names);
+    if(!sectionPath.length && defaultDeck) sectionPath.push(...defaultDeck.split('::').map(name=>name.trim()).filter(Boolean));
+    const sectionId = sectionPath.length ? getOrCreateAnkiSectionPath(sectionPath,sections,sectionByPath) : null;
     const model = { flds:names.map(name=>({ name })) };
     const question = detectAnkiQuiz(model,fields);
     if(question){
       if(question.needsCorrectChoice) uncheckedAnswers += 1;
-      quizCards.push(question);
+      missingImages += question.missingImages;
+      const { missingImages:questionMissingImages, ...quizCard } = question;
+      quizCards.push({ ...quizCard, sectionId });
       return;
     }
     const front = importAnkiSide(values[0],new Map());
@@ -3074,47 +3738,98 @@ async function parseAnkiTextExport(file){
     const back = answerText
       ? { text:escapeHtml(answerText).replace(/\r?\n/g,'<br>'), image:null }
       : importAnkiSide(backHtml,new Map());
+    missingImages += front.missingImages + back.missingImages;
     if(front.text || back.text){
-      flashcards.push({ term:front.text, def:back.text, termImage:null, defImage:null });
+      flashcards.push({ term:front.text, def:back.text, termImage:null, defImage:null, sectionId });
     }
   });
   const detectedType = quizCards.length > flashcards.length ? 'quiz' : 'flashcards';
-  return { title:file.name.replace(/\.(?:apkg|txt|tsv)$/i,''), detectedType, flashcards, quizCards, uncheckedAnswers };
+  const warnings = [];
+  if(!sections.length) warnings.push('Textový export neobsahuje názvy balíčků. Pro automatické rozdělení podle Anki použij export .apkg.');
+  if(missingImages) warnings.push(`V textovém exportu se nepodařilo najít ${missingImages} obrázků.`);
+  return {
+    title:file.name.replace(/\.(?:apkg|txt|tsv)$/i,''),
+    detectedType, flashcards, quizCards, sections, uncheckedAnswers,
+    missingImages,
+    structureWarning:warnings.join(' '),
+  };
 }
 
 async function parseAnkiPackage(file){
   const { JSZip, SQL } = await loadAnkiRuntime();
   const archive = await JSZip.loadAsync(file);
-  const databaseFile = archive.file('collection.anki2') || archive.file('collection.anki21');
+  const modernDatabaseFile = archive.file('collection.anki21b');
+  const databaseFile = modernDatabaseFile || archive.file('collection.anki21') || archive.file('collection.anki2');
   if(!databaseFile) throw new Error('V balíčku se nenašla podporovaná databáze Anki. Použij export .apkg.');
-  const database = new SQL.Database(new Uint8Array(await databaseFile.async('uint8array')));
+  let databaseBytes = new Uint8Array(await databaseFile.async('uint8array'));
+  if(modernDatabaseFile){
+    try{
+      const zstd = await loadAnkiZstd();
+      databaseBytes = zstd.decompress(databaseBytes);
+    }catch(error){
+      throw new Error(`Komprimovanou databázi Anki se nepodařilo rozbalit: ${error.message}`);
+    }
+  }
+  const database = new SQL.Database(databaseBytes);
   try{
-    const modelRows = database.exec('SELECT models FROM col LIMIT 1')[0]?.values?.[0]?.[0];
-    if(!modelRows) throw new Error('Export Anki neobsahuje definice typů poznámek.');
-    const models = JSON.parse(modelRows);
+    let models;
+    let deckNames;
+    if(modernDatabaseFile){
+      models = getModernAnkiModels(database);
+      const decks = database.exec('SELECT id, name FROM decks')[0]?.values || [];
+      deckNames = new Map(decks.map(([id,name])=>[String(id),String(name || '')]));
+    }else{
+      const modelRows = database.exec('SELECT models FROM col LIMIT 1')[0]?.values?.[0]?.[0];
+      if(!modelRows) throw new Error('Export Anki neobsahuje definice typů poznámek.');
+      models = JSON.parse(modelRows);
+      const deckRows = database.exec('SELECT decks FROM col LIMIT 1')[0]?.values?.[0]?.[0];
+      const decks = deckRows ? JSON.parse(deckRows) : {};
+      deckNames = new Map(Object.entries(decks).map(([id,deck])=>[String(id),String(deck.name || '')]));
+    }
+    if(!Object.keys(models).length) throw new Error('Export Anki neobsahuje definice typů poznámek.');
     const notes = database.exec('SELECT id, mid, flds, tags FROM notes')[0]?.values || [];
-    const cards = database.exec('SELECT nid, ord FROM cards ORDER BY id')[0]?.values || [];
+    const cards = database.exec('SELECT nid, ord, did FROM cards ORDER BY id')[0]?.values || [];
     const cardsByNote = new Map();
-    cards.forEach(([noteId,ordinal]) => {
+    cards.forEach(([noteId,ordinal,deckId]) => {
       const list = cardsByNote.get(String(noteId)) || [];
-      list.push(Number(ordinal));
+      list.push({ ordinal:Number(ordinal), deckId:String(deckId) });
       cardsByNote.set(String(noteId),list);
     });
+    const sections = [];
+    const sectionByPath = new Map();
+    const sectionIdForDeck = deckId => {
+      const deckName = deckNames.get(String(deckId)) || '';
+      const path = deckName.split(/::|\u001f/).map(name=>name.trim()).filter(Boolean);
+      if(path[0] === 'Default') path.shift();
+      return path.length ? getOrCreateAnkiSectionPath(path,sections,sectionByPath) : null;
+    };
 
     const media = new Map();
+    let missingImages = 0;
     const mediaIndex = archive.file('media');
     if(mediaIndex){
-      let mapping = {};
-      try{ mapping = JSON.parse(await mediaIndex.async('string')); }catch{}
-      const mediaTypes = { png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',svg:'image/svg+xml' };
-      for(const [storedName,originalName] of Object.entries(mapping)){
-        const extension = String(originalName).split('.').pop().toLowerCase();
+      const zstd = modernDatabaseFile ? await loadAnkiZstd() : null;
+      let mediaList = new Uint8Array(await mediaIndex.async('uint8array'));
+      if(zstd) mediaList = zstd.decompress(mediaList);
+      let mediaEntries;
+      try{
+        mediaEntries = getAnkiMediaEntries(mediaList,Boolean(modernDatabaseFile));
+      }catch(error){
+        throw new Error(`Seznam médií v balíčku Anki se nepodařilo načíst: ${error.message}`);
+      }
+      const mediaTypes = { png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',svg:'image/svg+xml',bmp:'image/bmp',avif:'image/avif' };
+      for(const {index, name:originalName} of mediaEntries){
+        const fileName = decodeMediaFilename(originalName);
+        const extension = fileName.split('.').pop().toLowerCase();
         const mime = mediaTypes[extension];
-        const entry = mime && archive.file(storedName);
+        const entry = mime && archive.file(index);
+        if(mime && !entry) throw new Error(`V balíčku chybí soubor s obrázkem „${originalName}“.`);
         if(entry){
-          const dataUrl = `data:${mime};base64,${await entry.async('base64')}`;
+          let imageBytes = new Uint8Array(await entry.async('uint8array'));
+          if(zstd) imageBytes = zstd.decompress(imageBytes);
+          const dataUrl = `data:${mime};base64,${ankiBytesToBase64(imageBytes)}`;
           media.set(originalName,dataUrl);
-          media.set(storedName,dataUrl);
+          media.set(fileName,dataUrl);
         }
       }
     }
@@ -3129,26 +3844,32 @@ async function parseAnkiPackage(file){
       const values = String(rawFields || '').split('\x1f');
       const fields = Object.fromEntries(definitions.map((field,index) => [field.name,values[index] || '']));
       fields.Tags = tags || '';
-      const multipleChoice = detectAnkiQuiz(model,fields);
+      const multipleChoice = detectAnkiQuiz(model,fields,media);
       if(multipleChoice){
+        missingImages += multipleChoice.missingImages;
         if(multipleChoice.needsCorrectChoice) uncheckedAnswers += 1;
-        quizCards.push(multipleChoice);
+        const modelCards = cardsByNote.get(String(noteId)) || [];
+        const quizCard = { ...multipleChoice };
+        delete quizCard.missingImages;
+        quizCards.push({ ...quizCard, sectionId:modelCards.length ? sectionIdForDeck(modelCards[0].deckId) : null });
         return;
       }
-      const modelCards = cardsByNote.get(String(noteId)) || [0];
-      modelCards.forEach(ordinal => {
+      const modelCards = cardsByNote.get(String(noteId)) || [{ ordinal:0, deckId:null }];
+      modelCards.forEach(({ordinal,deckId}) => {
         const template = (model.tmpls || []).find(item => Number(item.ord) === ordinal) || (model.tmpls || [])[0];
         const questionHtml = template ? renderAnkiTemplate(template.qfmt,fields,ordinal+1) : definitions[0] ? fields[definitions[0].name] : '';
         const answerHtml = template ? renderAnkiTemplate(template.afmt,fields,ordinal+1,questionHtml) : definitions[1] ? fields[definitions[1].name] : '';
         const question = importAnkiSide(questionHtml,media);
         const answer = importAnkiSide(answerHtml,media);
+        missingImages += question.missingImages + answer.missingImages;
         if(question.text || answer.text || question.image || answer.image){
-          flashcards.push({ term:question.text, def:answer.text, termImage:question.image, defImage:answer.image });
+          flashcards.push({ term:question.text, def:answer.text, termImage:question.image, defImage:answer.image, sectionId:deckId ? sectionIdForDeck(deckId) : null });
         }
       });
     });
     const detectedType = quizCards.length > flashcards.length ? 'quiz' : 'flashcards';
-    return { title:file.name.replace(/\.apkg$/i,''), detectedType, flashcards, quizCards, uncheckedAnswers };
+    const structureWarning = missingImages ? ` V balíčku se nepodařilo najít ${missingImages} obrázků.` : '';
+    return { title:file.name.replace(/\.apkg$/i,''), detectedType, flashcards, quizCards, sections, uncheckedAnswers, missingImages, structureWarning };
   }finally{
     database.close();
   }
@@ -3161,8 +3882,8 @@ function openAnkiImportModal(){
     <input class="field-box" id="ankiFileInput" type="file" accept=".apkg,.txt,.tsv,application/octet-stream,text/plain">
     <p class="page-sub" id="ankiImportStatus" role="status">Soubor se zpracuje v tomto prohlížeči.</p>
     <div id="ankiImportSummary" hidden>
-      <label class="class-field-label" for="ankiImportType">Rozpoznaný typ</label>
-      <select class="opt-select" id="ankiImportType"><option value="flashcards">Kartičky</option><option value="quiz">Kvíz ABC</option></select>
+      <label class="class-field-label" for="ankiImportType">Importovat jako</label>
+      <select class="opt-select" id="ankiImportType"><option value="flashcards">Pouze kartičky</option><option value="quiz">Pouze kvíz ABC</option><option value="mixed">Mix kartiček a kvízu</option></select>
       <p class="page-sub" id="ankiImportDetails"></p>
     </div>
     <div class="class-modal-actions"><button class="btn btn-ghost" data-close>Zrušit</button><button class="btn btn-primary" id="doAnkiImport" disabled>Importovat</button></div>
@@ -3177,11 +3898,12 @@ function openAnkiImportModal(){
   const updateImportState = () => {
     if(!parsed) return;
     const quizCards = getAnkiQuizCards(parsed);
-    const selectedCards = typeSelect.value === 'quiz' ? quizCards : parsed.flashcards;
+    const selectedCards = typeSelect.value === 'quiz' ? quizCards
+      : typeSelect.value === 'mixed' ? [...parsed.flashcards,...parsed.quizCards]
+      : parsed.flashcards;
     importButton.disabled = !selectedCards?.length;
-    const detected = parsed.quizCards.length > parsed.flashcards.length ? 'Kvíz ABC' : 'Kartičky';
     const mixed = parsed.quizCards.length > 0 && parsed.flashcards.length > 0;
-    details.textContent = `Nalezeno ${parsed.flashcards.length} běžných dvojic a ${parsed.quizCards.length} ABC otázek.${mixed?` Soubor obsahuje oba typy; převažuje ${detected==='Kvíz ABC'?'kvíz ABC':'kartičkový režim'}.`:''}${typeSelect.value === 'quiz' && parsed.flashcards.length?` Běžné dvojice se převedou na odpověď a možnost „Nevím“.`:''}${parsed.uncheckedAnswers?` U ${parsed.uncheckedAnswers} otázek zkontroluj správnou možnost.`:''}`;
+    details.textContent = `Nalezeno ${parsed.flashcards.length} běžných dvojic a ${parsed.quizCards.length} ABC otázek.${parsed.sections?.length?` Automaticky rozpoznáno bloků: ${parsed.sections.length}.`:''}${parsed.structureWarning?` ${parsed.structureWarning}`:''}${mixed?` Soubor obsahuje oba typy; vyber samostatný režim, nebo je importuj společně jako mix.`:''}${typeSelect.value === 'quiz' && parsed.flashcards.length?` Běžné dvojice se převedou na odpověď a možnost „Nevím“.`:''}${parsed.uncheckedAnswers?` U ${parsed.uncheckedAnswers} otázek zkontroluj správnou možnost.`:''}`;
   };
   fileInput.onchange = async () => {
     const file = fileInput.files[0];
@@ -3192,7 +3914,7 @@ function openAnkiImportModal(){
     status.textContent = 'Čtu soubor a rozpoznávám jeho strukturu…';
     try{
       parsed = /\.(?:txt|tsv)$/i.test(file.name) ? await parseAnkiTextExport(file) : await parseAnkiPackage(file);
-      typeSelect.value = parsed.detectedType;
+      typeSelect.value = parsed.quizCards.length && parsed.flashcards.length ? 'mixed' : parsed.detectedType;
       summary.hidden = false;
       status.textContent = `Načteno: ${file.name}`;
       updateImportState();
@@ -3203,43 +3925,57 @@ function openAnkiImportModal(){
   typeSelect.onchange = updateImportState;
   importButton.onclick = async () => {
     const type = typeSelect.value;
-    const importedCards = type === 'quiz' ? getAnkiQuizCards(parsed) : parsed?.flashcards;
+    const importedCards = type === 'quiz' ? getAnkiQuizCards(parsed)
+      : type === 'mixed' ? [
+        ...(parsed?.flashcards || []).map(card=>({...card,kind:'flashcards'})),
+        ...(parsed?.quizCards || []).map(card=>({...card,kind:'quiz'})),
+      ]
+      : parsed?.flashcards;
     if(!importedCards?.length) return;
     if(!draft.title.trim()) draft.title = parsed.title;
-    const hasExistingContent = draft.cards.some(card => draft.type === 'quiz'
-      ? card.question || card.options?.some(option => option.text)
-      : card.term || card.def);
-    if(hasExistingContent && draft.type !== type){
+    const hasExistingContent = draft.cards.some(card => isQuizCard(card,draft)
+      ? card.question || card.questionImage || card.options?.some(option => option.text || option.image)
+      : card.term || card.def || card.termImage || card.defImage || card.image);
+    if(hasExistingContent && draft.type !== type && draft.type !== 'mixed'){
       if(!await confirmThemed('Import má jiný typ než současný obsah. Dosavadní položky budou nahrazeny.',{title:'Nahradit obsah importem?',confirmLabel:'Nahradit',danger:true})) return;
       draft.cards = [];
-    }else if(!hasExistingContent && draft.type !== type){
+    }else if(!hasExistingContent){
       draft.cards = [];
     }
-    draft.type = type;
-    draft.cards.push(...importedCards);
+    if(type==='mixed' || draft.type==='mixed'){
+      draft.type = 'mixed';
+      importedCards.forEach(card=>{ if(!card.kind) card.kind = type==='quiz'?'quiz':'flashcards'; });
+    }else draft.type = type;
+    const mergedSections = mergeImportedAnkiSections(draft.sections,parsed.sections || []);
+    draft.sections = mergedSections.sections;
+    draft.cards.push(...importedCards.map(card=>({
+      ...card,
+      sectionId:mergedSections.sectionIdMap.get(card.sectionId) || card.sectionId || null,
+    })));
     closeModal();
     state.view = 'create';
     render();
-    const warning = type === 'quiz' && parsed.uncheckedAnswers ? ` Zkontroluj správnou odpověď u ${parsed.uncheckedAnswers} otázek.` : '';
-    showToast(`Importováno ${importedCards.length} ${type==='quiz'?'otázek':'kartiček'}.${warning}`);
+    const warning = type !== 'flashcards' && parsed.uncheckedAnswers ? ` Zkontroluj správnou odpověď u ${parsed.uncheckedAnswers} otázek.` : '';
+    showToast(`Importováno ${importedCards.length} ${type==='quiz'?'otázek':type==='mixed'?'položek':'kartiček'}.${warning}`);
   };
 }
 
 async function commitDraft(){
   if(!draft.title.trim()){ showToast('Zadej prosím název sady.'); return; }
-  const validCards = draft.type === 'quiz'
-    ? draft.cards.filter(card => card.question.trim())
-    : draft.cards.filter(card => card.term.trim() || card.def.trim());
-  if(validCards.length === 0){ showToast(draft.type==='quiz'?'Přidej alespoň jednu otázku.':'Přidej alespoň jednu kartičku s pojmem nebo definicí.'); return; }
-  if(draft.type === 'quiz'){
-    const invalidQuestion = validCards.find(card => card.options.length < 2 || card.options.length > 8 || card.options.some(option => !option.text.trim()) || card.options.filter(option => option.correct).length !== 1);
+  const validCards = draft.cards.filter(card => isQuizCard(card,draft)
+    ? String(card.question || '').trim() || card.questionImage
+    : String(card.term || '').trim() || String(card.def || '').trim() || card.termImage || card.defImage || card.image);
+  if(validCards.length === 0){ showToast(draft.type==='quiz'?'Přidej alespoň jednu otázku.':draft.type==='mixed'?'Přidej alespoň jednu kartičku nebo otázku.':'Přidej alespoň jednu kartičku s pojmem nebo definicí.'); return; }
+  const quizCards = validCards.filter(card=>isQuizCard(card,draft));
+  if(quizCards.length){
+    const invalidQuestion = quizCards.find(card => !Array.isArray(card.options) || card.options.length < 2 || card.options.length > 8 || card.options.some(option => !String(option.text || '').trim() && !option.image) || card.options.filter(option => option.correct).length !== 1);
     if(invalidQuestion){ showToast('Každá otázka musí mít 2–8 vyplněných odpovědí a právě jednu správnou.'); return; }
   }
   try{
-    if(draft.type === 'quiz') for(const card of validCards){
+    for(const card of validCards) if(isQuizCard(card,draft)){
       card.questionImage = await compactCardImage(card.questionImage);
-    }
-    else for(const card of validCards){
+      for(const option of card.options) option.image = await compactCardImage(option.image);
+    }else{
         card.termImage = await compactCardImage(card.termImage);
         card.defImage = await compactCardImage(card.defImage);
         card.image = await compactCardImage(card.image);
@@ -3269,6 +4005,7 @@ async function commitDraft(){
       subject_code:(nextSet.subjectCode || '').trim().toUpperCase(),
       subject_id:nextSet.className && nextPayload.classVisibility?.[nextSet.className] === true ? nextSet.className : null,
       cards:nextSet.cards,
+      sections:nextSet.sections || [],
       is_public:nextSet.isPublic === true,
       updated_at:new Date().toISOString(),
     });
@@ -3277,7 +4014,7 @@ async function commitDraft(){
     state.editingSetId = null;
     state.view = 'admin-sets';
     render();
-    showToast(marketplaceError?'Sada byla uložena, ale její synchronizace s burzou selhala.':'Sada byla uložena.');
+    showToast(marketplaceError?'Sada byla uložena, ale její synchronizace s burzou selhala: ' + marketplaceError.message:'Sada byla uložena.');
     return;
   }
   const idx = state.sets.findIndex(s => s.id === draft.id);
@@ -3301,7 +4038,7 @@ function openStudy(setId){
   if(!s.starred) s.starred = [];
   state.study = {
     setId,
-    queue: s.cards.map((_,i)=>i),
+    queue:[],
     pointer: 0,
     roundTotal: s.cards.length,
     reviewed: 0,
@@ -3310,7 +4047,9 @@ function openStudy(setId){
     history: [],
     wrong: [],
     settings: userStudySettings,
+    selectedSectionIds:[...normalizeSections(s.sections).map(section=>section.id),'__unassigned__'],
   };
+  initQueueFromSettings();
   state.view = 'study';
   render();
 }
@@ -3332,9 +4071,17 @@ function setTrackProgress(enabled){
 function initQueueFromSettings(){
   const s = currentSet();
   const st = state.study;
-  let indices = s.cards.map((_,i)=>i);
-  if(st.settings.starredOnly) indices = indices.filter(i => (s.starred||[]).includes(i));
-  if(indices.length === 0) indices = s.cards.map((_,i)=>i);
+  const selected = new Set(st.selectedSectionIds || []);
+  const knownSectionIds = new Set(normalizeSections(s.sections).map(section=>section.id));
+  const sectionIndices = s.cards.map((_,i)=>i).filter(index=>{
+    const sectionId = s.cards[index].sectionId;
+    return sectionId && knownSectionIds.has(sectionId) ? selected.has(sectionId) : selected.has('__unassigned__');
+  });
+  let indices = sectionIndices;
+  if(st.settings.starredOnly){
+    const starred = sectionIndices.filter(i => (s.starred||[]).includes(i));
+    if(starred.length) indices = starred;
+  }
   st.queue = indices;
   st.pointer = 0;
   st.roundTotal = indices.length;
@@ -3345,6 +4092,98 @@ function initQueueFromSettings(){
   st.answered = false;
   st.selectedAnswer = null;
   st.answerCorrect = false;
+}
+
+function renderStudySectionPanel(set, study){
+  const overlay = document.createElement('div');
+  overlay.id = 'studySectionOverlay';
+  overlay.className = 'study-section-overlay';
+  overlay.setAttribute('aria-hidden','true');
+  overlay.innerHTML = `<button type="button" class="study-section-backdrop" aria-label="Zavřít nabídku bloků"></button><aside class="section-panel study-section-drawer" role="dialog" aria-modal="true" aria-labelledby="studySectionTitle"><div class="study-section-drawer-header"><h2 id="studySectionTitle">Bloky k procvičení</h2><button type="button" class="icon-btn" data-close-section-menu aria-label="Zavřít bloky k procvičení" title="Zavřít">${icon('x',18)}</button></div><div class="section-panel-content"><div class="section-tree"></div><div class="section-panel-actions"><button type="button" class="btn btn-outline btn-sm" data-select-all>Vše</button><button type="button" class="btn btn-primary btn-sm" data-apply-sections>Potvrdit</button></div></div></aside>`;
+  const panel = overlay.querySelector('.study-section-drawer');
+  const content = panel.querySelector('.section-panel-content');
+  const tree = panel.querySelector('.section-tree');
+  const sections = normalizeSections(set.sections);
+  const selected = new Set(study.selectedSectionIds || []);
+  const unassignedIndices = set.cards.map((card,index)=>({card,index})).filter(({card})=>!card.sectionId || !sections.some(section=>section.id===card.sectionId)).map(({index})=>index);
+  const refreshChecks = () => {
+    tree.querySelectorAll('[data-section-select]').forEach(input=>{
+      const descendants = sectionDescendantIds(sections,input.dataset.sectionSelect);
+      const checkedCount = descendants.filter(id=>selected.has(id)).length;
+      input.checked = checkedCount === descendants.length;
+      input.indeterminate = checkedCount > 0 && checkedCount < descendants.length;
+    });
+    const unassigned = tree.querySelector('[data-section-select="__unassigned__"]');
+    if(unassigned) unassigned.checked = selected.has('__unassigned__');
+  };
+  const renderNode = (section,depth=0) => {
+    const children = sections.filter(item=>item.parentId===section.id);
+    const node = document.createElement(children.length ? 'details' : 'div');
+    node.className = 'section-tree-node';
+    const rowMarkup = `<input class="section-tree-check" type="checkbox" data-section-select="${escapeHtml(section.id)}" aria-label="Procvičovat blok ${escapeHtml(section.name)}"><span class="section-tree-label">${escapeHtml(section.name)}</span>`;
+    if(children.length){
+      node.open = depth === 0;
+      node.innerHTML = `<summary>${rowMarkup}</summary><div class="section-tree-children"></div>`;
+    }else{
+      node.classList.add('section-tree-leaf');
+      node.innerHTML = `<div class="section-tree-row">${rowMarkup}</div>`;
+    }
+    node.querySelector('[data-section-select]').onchange = event => {
+      const descendants = sectionDescendantIds(sections,section.id);
+      descendants.forEach(id=>event.target.checked ? selected.add(id) : selected.delete(id));
+      refreshChecks();
+    };
+    node.querySelector('[data-section-select]').onclick = event => event.stopPropagation();
+    children.forEach(child=>node.querySelector('.section-tree-children').appendChild(renderNode(child,depth+1)));
+    return node;
+  };
+  const roots = sections.filter(section=>!sections.some(parent=>parent.id===section.parentId));
+  roots.forEach(section=>tree.appendChild(renderNode(section)));
+  if(unassignedIndices.length){
+    const unassigned = document.createElement('label');
+    unassigned.className = 'section-tree-node';
+    unassigned.innerHTML = `<span style="display:flex;align-items:center;gap:8px;min-height:34px"><input class="section-tree-check" type="checkbox" data-section-select="__unassigned__"><span class="section-tree-label">Bez bloku</span><span class="section-tree-count">${unassignedIndices.length}</span></span>`;
+    unassigned.querySelector('input').onchange = event => {
+      if(event.target.checked) selected.add('__unassigned__');
+      else selected.delete('__unassigned__');
+    };
+    tree.appendChild(unassigned);
+  }
+  if(!sections.length && !unassignedIndices.length){
+    content.querySelector('.section-panel-empty').textContent = 'Tato sada zatím nemá žádné bloky.';
+  }
+  refreshChecks();
+  panel.querySelector('[data-select-all]').onclick = () => {
+    sections.forEach(section=>selected.add(section.id));
+    if(unassignedIndices.length) selected.add('__unassigned__');
+    refreshChecks();
+  };
+  panel.querySelector('[data-apply-sections]').onclick = () => {
+    const indices = set.cards.map((card,index)=>({card,index})).filter(({card})=>{
+      const sectionId = card.sectionId && sections.some(section=>section.id===card.sectionId) ? card.sectionId : '__unassigned__';
+      return selected.has(sectionId);
+    }).map(({index})=>index);
+    if(!indices.length){ showToast('Vyber alespoň jeden blok s kartičkami.'); return; }
+    study.selectedSectionIds = [...selected];
+    if(study.settings.starredOnly){
+      const starred = indices.filter(index=>(set.starred || []).includes(index));
+      if(starred.length) indices.splice(0,indices.length,...starred);
+      else showToast('Ve vybraných blocích nejsou označené kartičky; opakuji všechny vybrané.');
+    }
+    study.queue = indices;
+    study.pointer = 0;
+    study.roundTotal = indices.length;
+    study.reviewed = 0;
+    study.flipped = false;
+    study.history = [];
+    study.wrong = [];
+    study.answered = false;
+    study.selectedAnswer = null;
+    study.answerCorrect = false;
+    render();
+    showToast(`Výběr potvrzen: ${studyCountLabel(indices.length,set.type==='mixed'?'mixed':set.type==='quiz')}.`);
+  };
+  return overlay;
 }
 
 function speak(text){
@@ -3370,8 +4209,9 @@ function renderStudy(){
       <button class="icon-btn" id="backBtn">${icon('back',18)}</button>
       <span class="study-title">${escapeHtml(s.title)}</span>
     </div>
-    <div style="display:flex;gap:8px">
+    <div class="study-topbar-actions">
       <button class="btn btn-outline btn-sm" id="editSetBtn">${icon('pencil',14)} Upravit</button>
+      <button type="button" class="icon-btn" id="studySectionToggle" aria-label="Otevřít bloky k procvičení" title="Bloky k procvičení" aria-expanded="false" aria-controls="studySectionOverlay">${icon('filter',18)}</button>
     </div>
   `;
   topbar.querySelector('#backBtn').onclick = () => { state.view='library'; state.study=null; render(); };
@@ -3380,6 +4220,49 @@ function renderStudy(){
 
   const body = document.createElement('div');
   body.className = 'study-body';
+  const layout = document.createElement('div');
+  layout.className = 'study-layout';
+  layout.append(body);
+  const sectionOverlay = renderStudySectionPanel(s,st);
+  const sectionToggle = topbar.querySelector('#studySectionToggle');
+  const closeSectionMenu = () => {
+    sectionOverlay.classList.remove('is-open');
+    sectionOverlay.setAttribute('aria-hidden','true');
+    sectionToggle.setAttribute('aria-expanded','false');
+  };
+  sectionOverlay.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){
+      event.preventDefault();
+      event.stopPropagation();
+      closeSectionMenu();
+      sectionToggle.focus();
+      return;
+    }
+    if(event.key==='Tab'){
+      const focusable = [...sectionOverlay.querySelectorAll('button:not(:disabled),input:not(:disabled)')];
+      const first = focusable[0];
+      const last = focusable[focusable.length-1];
+      if(event.shiftKey && document.activeElement===first){ event.preventDefault(); last.focus(); }
+      else if(!event.shiftKey && document.activeElement===last){ event.preventDefault(); first.focus(); }
+    }
+  });
+  sectionToggle.onclick = () => {
+    const isOpen = sectionOverlay.classList.toggle('is-open');
+    sectionOverlay.setAttribute('aria-hidden',String(!isOpen));
+    sectionToggle.setAttribute('aria-expanded',String(isOpen));
+    if(isOpen) setTimeout(()=>{
+      if(sectionOverlay.classList.contains('is-open')) sectionOverlay.querySelector('[data-close-section-menu]').focus();
+    },240);
+  };
+  sectionOverlay.querySelector('[data-close-section-menu]').onclick = () => {
+    closeSectionMenu();
+    sectionToggle.focus();
+  };
+  sectionOverlay.querySelector('.study-section-backdrop').onclick = () => {
+    closeSectionMenu();
+    sectionToggle.focus();
+  };
+  wrap.append(layout,sectionOverlay);
 
   if(st.queue.length === 0){
     const canPracticeWrong = st.settings.trackProgress && st.wrong.length > 0;
@@ -3387,7 +4270,7 @@ function renderStudy(){
       <div class="done-panel">
         <div class="emoji">🎉</div>
         <h2>Skvělá práce!</h2>
-        <p>Prošel(a) jsi ${s.type==='quiz'?'všechny otázky':'všechny kartičky'} v této sadě.</p>
+        <p>Prošel(a) jsi ${s.type==='quiz'?'všechny otázky':s.type==='mixed'?'všechny položky':'všechny kartičky'} v této sadě.</p>
         <div class="done-actions">
           ${canPracticeWrong ? '<button class="btn btn-ghost" id="wrongBtn">Procvičit, co neumím</button>' : ''}
           <button class="btn btn-ghost" id="restartBtn2">Začít znovu</button>
@@ -3399,12 +4282,12 @@ function renderStudy(){
     if(wrongBtn) wrongBtn.onclick = () => { st.queue = [...st.wrong]; st.wrong = []; st.pointer = 0; st.roundTotal = st.queue.length; st.reviewed = 0; st.flipped = false; st.history = []; render(); };
     body.querySelector('#restartBtn2').onclick = () => { initQueueFromSettings(); render(); };
     body.querySelector('#libBtn').onclick = () => { state.view='library'; state.study=null; render(); };
-    wrap.appendChild(body);
     return wrap;
   }
 
-  if(s.type === 'quiz'){
-    renderQuizStudy(s,st,body,wrap);
+  const currentCard = s.cards[st.queue[st.pointer]];
+  if(s.type === 'quiz' || isQuizCard(currentCard,s)){
+    renderQuizStudy(s,st,body);
     return wrap;
   }
 
@@ -3466,7 +4349,7 @@ function renderStudy(){
     </div>
   `;
   body.appendChild(controls);
-  wrap.appendChild(body);
+  wrap.appendChild(layout);
 
   // interactions
   const flashEl = stage.querySelector('#flashCard');
@@ -3559,7 +4442,11 @@ function renderStudy(){
   wrap.tabIndex = -1;
   document.onkeydown = (e) => {
     if(state.view !== 'study') return;
-    if(e.code === 'Escape'){ e.preventDefault(); handleEscape(); }
+    if(e.code === 'Escape'){
+      e.preventDefault();
+      if(sectionOverlay.classList.contains('is-open')){ closeSectionMenu(); sectionToggle.focus(); }
+      else handleEscape();
+    }
     else if(e.code === 'Space'){ e.preventDefault(); flashEl.click(); }
     else if(e.code === 'ArrowRight' || e.code === 'KeyD'){
       e.preventDefault();
@@ -3576,7 +4463,7 @@ function renderStudy(){
   return wrap;
 }
 
-function renderQuizStudy(set, study, body, wrap){
+function renderQuizStudy(set, study, body){
   const cardIndex = study.queue[study.pointer];
   const question = set.cards[cardIndex];
   const options = Array.isArray(question.options) ? question.options : [];
@@ -3589,12 +4476,16 @@ function renderQuizStudy(set, study, body, wrap){
     <div class="quiz-options">${options.map((option,index) => {
       const correct = study.answered && option.correct;
       const incorrect = study.answered && index === selectedIndex && !option.correct;
-      return `<button type="button" class="quiz-option ${correct?'correct':''} ${incorrect?'incorrect':''}" data-quiz-answer="${index}" ${study.answered?'disabled':''}><strong>${String.fromCharCode(65+index)}.</strong> ${escapeHtml(option.text || '')}</button>`;
+      return `<button type="button" class="quiz-option ${correct?'correct':''} ${incorrect?'incorrect':''}" data-quiz-answer="${index}" ${study.answered?'disabled':''}><strong>${String.fromCharCode(65+index)}.</strong> <span class="quiz-option-content">${escapeHtml(option.text || '')}${option.image?`<img src="${escapeHtml(option.image)}" alt="Obrázek možnosti ${String.fromCharCode(65+index)}">`:''}</span></button>`;
     }).join('')}</div>
     ${study.answered && question.explanation ? `<p class="quiz-explanation" role="status">${escapeHtml(question.explanation)}</p>` : ''}`;
   body.appendChild(stage);
   const questionImage = stage.querySelector('.quiz-question-image-display');
   if(questionImage) questionImage.onclick = () => openImageLightbox(questionImage.src);
+  stage.querySelectorAll('.quiz-option-content img').forEach(image=>image.onclick=event=>{
+    event.stopPropagation();
+    openImageLightbox(image.src);
+  });
   stage.querySelectorAll('[data-quiz-answer]').forEach(button => button.onclick = () => {
     const answerIndex = Number(button.dataset.quizAnswer);
     study.selectedAnswer = answerIndex;
@@ -3616,8 +4507,6 @@ function renderQuizStudy(set, study, body, wrap){
     </div>
     <button class="btn btn-primary" id="quizNext" ${study.answered?'':'disabled'}>${study.queue.length===1?'Dokončit':'Další otázka'} ${icon('arrow',16)}</button>`;
   body.appendChild(controls);
-  wrap.appendChild(body);
-
   controls.querySelector('#quizNext').onclick = () => {
     study.history.push({
       queue:[...study.queue], pointer:study.pointer, roundTotal:study.roundTotal, reviewed:study.reviewed,
@@ -3653,7 +4542,7 @@ function renderQuizStudy(set, study, body, wrap){
   };
   controls.querySelector('#trackSwitch').onclick = () => setTrackProgress(!study.settings.trackProgress);
 
-  wrap.tabIndex = -1;
+  body.tabIndex = -1;
   document.onkeydown = event => {
     if(state.view !== 'study') return;
     if(event.code === 'Escape'){ event.preventDefault(); handleEscape(); }
@@ -3697,7 +4586,7 @@ function openStudySettings(){
     <div class="opt-row">
       <div class="opt-row-text"><p class="opt-row-title">Přední strana</p></div>
       <div class="setting-picker" id="frontPicker">
-        <button type="button" class="setting-picker-current" id="frontToggle"><span>${settings.front==='term'?'Pojem':'Definice'}</span><span>⌄</span></button>
+        <button type="button" class="setting-picker-current" id="frontToggle" aria-expanded="false"><span>${settings.front==='term'?'Pojem':'Definice'}</span><span aria-hidden="true"></span></button>
         <div class="setting-picker-menu">
           <button type="button" class="setting-picker-option ${settings.front==='term'?'selected':''}" data-front-side="term">Pojem</button>
           <button type="button" class="setting-picker-option ${settings.front==='def'?'selected':''}" data-front-side="def">Definice</button>
@@ -3710,7 +4599,7 @@ function openStudySettings(){
         <p class="opt-row-desc">Nastaví výšku kartičky při procvičování.</p>
       </div>
       <div class="setting-picker" id="cardSizePicker">
-        <button type="button" class="setting-picker-current" id="cardSizeToggle"><span>${(settings.cardSize||'large')==='small'?'Menší':(settings.cardSize||'large')==='medium'?'Standardní':'Větší'}</span><span>⌄</span></button>
+        <button type="button" class="setting-picker-current" id="cardSizeToggle" aria-expanded="false"><span>${(settings.cardSize||'large')==='small'?'Menší':(settings.cardSize||'large')==='medium'?'Standardní':'Větší'}</span><span aria-hidden="true"></span></button>
         <div class="setting-picker-menu">
           <button type="button" class="setting-picker-option ${(settings.cardSize||'large')==='small'?'selected':''}" data-card-size="small">Menší</button>
           <button type="button" class="setting-picker-option ${(settings.cardSize||'large')==='medium'?'selected':''}" data-card-size="medium">Standardní</button>
@@ -3758,7 +4647,11 @@ function openStudySettings(){
     if(st) initQueueFromSettings();
   };
   const frontPicker = document.getElementById('frontPicker');
-  document.getElementById('frontToggle').onclick = () => frontPicker.classList.toggle('open');
+  const frontToggle = document.getElementById('frontToggle');
+  frontToggle.onclick = () => {
+    const isOpen = frontPicker.classList.toggle('open');
+    frontToggle.setAttribute('aria-expanded',String(isOpen));
+  };
   document.querySelectorAll('[data-front-side]').forEach(option => option.onclick = () => {
     settings.front = option.dataset.frontSide;
     saveStudySettings();
@@ -3767,7 +4660,11 @@ function openStudySettings(){
     render();
   });
   const cardSizePicker = document.getElementById('cardSizePicker');
-  document.getElementById('cardSizeToggle').onclick = () => cardSizePicker.classList.toggle('open');
+  const cardSizeToggle = document.getElementById('cardSizeToggle');
+  cardSizeToggle.onclick = () => {
+    const isOpen = cardSizePicker.classList.toggle('open');
+    cardSizeToggle.setAttribute('aria-expanded',String(isOpen));
+  };
   document.querySelectorAll('[data-card-size]').forEach(option => option.onclick = () => {
     settings.cardSize = option.dataset.cardSize;
     saveStudySettings();
@@ -3775,8 +4672,14 @@ function openStudySettings(){
     render();
   });
   document.getElementById('modalOverlay').addEventListener('click', (e) => {
-    if(!cardSizePicker.contains(e.target)) cardSizePicker.classList.remove('open');
-    if(!frontPicker.contains(e.target)) frontPicker.classList.remove('open');
+    if(!cardSizePicker.contains(e.target)){
+      cardSizePicker.classList.remove('open');
+      cardSizeToggle.setAttribute('aria-expanded','false');
+    }
+    if(!frontPicker.contains(e.target)){
+      frontPicker.classList.remove('open');
+      frontToggle.setAttribute('aria-expanded','false');
+    }
   });
   document.getElementById('mFlip').onclick = (e) => {
     settings.flipAnimation = !settings.flipAnimation;
@@ -3849,29 +4752,51 @@ function confirmThemed(message,{title='Potvrdit akci',confirmLabel='Pokračovat'
     overlay.querySelector('#themedConfirmCancel').onclick = () => finish(false);
     overlay.querySelector('#themedConfirmAccept').onclick = () => finish(true);
     document.body.appendChild(overlay);
-    overlay.querySelector('#themedConfirmCancel').focus();
+    overlay.querySelector('#themedConfirmAccept').focus();
   });
 }
 
 function closeModal(){
-  const el = document.getElementById('modalOverlay');
-  if(el) el.remove();
+  document.getElementById('modalOverlay')?.remove();
 }
 
 function handleEscape(){
-  const lightbox = document.querySelector('.image-lightbox');
-  if(lightbox){ lightbox.remove(); return; }
+  const confirmation = document.querySelector('.confirm-overlay');
+  if(confirmation){
+    confirmation.querySelector('#themedConfirmCancel')?.click();
+    return;
+  }
   const modal = document.getElementById('modalOverlay');
   if(modal){ closeModal(); return; }
-  if(state.view === 'study' || state.view === 'create'){
+  const lightbox = document.querySelector('.image-lightbox');
+  if(lightbox){ lightbox.remove(); return; }
+  const sectionOverlay = document.querySelector('.study-section-overlay.is-open');
+  if(sectionOverlay){
+    sectionOverlay.classList.remove('is-open');
+    sectionOverlay.setAttribute('aria-hidden','true');
+    const toggle = document.getElementById('studySectionToggle');
+    toggle?.setAttribute('aria-expanded','false');
+    toggle?.focus();
+    return;
+  }
+  if(state.view === 'study'){
     state.view = 'library';
     state.study = null;
+    render();
+  }else if(state.view === 'create'){
+    state.view = draftReturnView;
+    state.adminEditingSet = null;
+    draft = null;
+    state.editingSetId = null;
     render();
   }
 }
 
-/* ============================= INIT ============================= */
-initializeAuth();
+initializeAuth().catch(error=>{
+  authReady = true;
+  console.error('Inicializace přihlášení selhala:',error);
+  renderAuth(error.message || 'Nepodařilo se inicializovat přihlášení.',true);
+});
 </script>
 </body>
 </html>
