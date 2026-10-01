@@ -3789,7 +3789,15 @@ function ankiHtmlToText(html){
   holder.querySelectorAll('script,style').forEach(node => node.remove());
   holder.querySelectorAll('br').forEach(node => node.replaceWith('\n'));
   holder.querySelectorAll('p,div,li').forEach(node => node.append('\n'));
-  return (holder.textContent || '').replace(/\u00a0/g,' ').replace(/[ \t]+\n/g,'\n').trim();
+  return (holder.textContent || '').replace(/\u00a0/g,' ').replace(/[ \t]+\n/g,'\n').replace(/\n{2,}/g,'\n').trim();
+}
+
+function normalizeImportedAnkiHtml(value){
+  return sanitizeRichText(value)
+    .replace(/^(?:(?:\s|&nbsp;|&#0*160;|&#x0*a0;)|<br\s*\/?>)+/i,'')
+    .replace(/(?:\s|&nbsp;|&#0*160;|&#x0*a0;)*<br\s*\/?>(?:(?:\s|&nbsp;|&#0*160;|&#x0*a0;)*<br\s*\/?>)+/gi,'<br>')
+    .replace(/(?:(?:\s|&nbsp;|&#0*160;|&#x0*a0;)|<br\s*\/?>)+$/i,'')
+    .trim();
 }
 
 function getAnkiHtmlAttribute(tag,name){
@@ -3845,7 +3853,7 @@ function importAnkiSide(html, media){
     return alt ? escapeHtml(alt) : '';
   });
   const cleaned = withoutImages.replace(/<hr\b[^>]*>/gi,'<br>').replace(/\[sound:[^\]]+\]/gi,'');
-  return { text:sanitizeRichText(cleaned), image, missingImages };
+  return { text:normalizeImportedAnkiHtml(cleaned), image, missingImages };
 }
 
 function getAnkiOptionLabel(fieldName){
