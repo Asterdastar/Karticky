@@ -340,6 +340,10 @@
   .section-tree-actions{ display:flex; gap:3px; }
   .section-tree-actions button{ width:28px; height:28px; border:0; border-radius:8px; background:transparent; color:var(--text-faint); font-size:15px; cursor:pointer; }
   .section-tree-actions button:hover{ background:var(--panel-2); color:var(--text); }
+  .section-delete-actions{ display:grid; gap:8px; }
+  .section-delete-choice-row{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .section-delete-choice-row .btn{ justify-content:center; text-align:center; white-space:normal; }
+  .section-delete-cancel-row{ display:flex; justify-content:flex-end; }
   .section-tree-check{ width:16px; height:16px; accent-color:var(--accent); flex:0 0 auto; }
   .section-panel-actions{ display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:12px; }
   .section-panel-actions .btn{ justify-content:center; white-space:normal; }
@@ -379,6 +383,20 @@
   .study-layout{ display:grid; grid-template-columns:minmax(0,1fr); gap:20px; align-items:start; flex:1; min-height:0; padding:0 20px; }
   .study-layout .study-body{ min-width:0; }
   .study-layout .study-stage,.study-layout .quiz-stage,.study-layout .study-controls,.study-layout .quiz-controls{ max-width:960px; }
+  .study-layout.has-quiz .quiz-stage{ display:flex; flex-direction:column; justify-content:center; min-height:0; }
+  .study-layout.has-quiz .quiz-stage.size-small{ height:380px; }
+  .study-layout.has-quiz .quiz-stage.size-medium{ height:520px; }
+  .study-layout.has-quiz .quiz-stage.size-large{ height:680px; }
+  .study-layout.mixed-study .study-controls,.study-layout.mixed-study .quiz-controls{ display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); }
+  .study-layout.has-quiz .quiz-controls{ display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); }
+  .study-layout.mixed-study .control-center,.study-layout.mixed-study .quiz-controls > .counter{ justify-self:center; }
+  .study-layout.has-quiz .quiz-controls > .counter{ justify-self:center; }
+  .study-layout.mixed-study .control-right,.study-layout.has-quiz .quiz-control-actions{ justify-self:end; }
+  .study-layout.mixed-study .quiz-controls .control-right{ display:flex; align-items:center; gap:6px; }
+  .study-layout.mixed-study .control-right .btn{ width:auto; height:auto; padding:11px 16px; border:0; border-radius:12px; color:#fff; }
+  .study-layout.has-quiz .quiz-control-actions #quizNext{ width:auto; height:auto; padding:11px 16px; border:0; border-radius:12px; }
+  .study-layout.has-quiz .quiz-control-actions #quizNext,.study-layout.mixed-study #mixedNextBtn{ background:var(--accent); color:#fff; text-decoration:none; }
+  .study-layout.has-quiz .quiz-control-actions #quizNext:hover,.study-layout.mixed-study #mixedNextBtn:hover{ background:var(--accent-hover); }
   .study-topbar-actions{ display:flex; align-items:center; gap:8px; }
   .study-section-overlay{ position:fixed; inset:0; z-index:1000; visibility:hidden; pointer-events:none; transition:visibility .22s; }
   .study-section-overlay.is-open{ visibility:visible; pointer-events:auto; }
@@ -923,6 +941,7 @@
     .study-body{ justify-content:flex-start; min-height:calc(100dvh - 58px); padding:14px 12px 10px; gap:10px; }
     .study-stage{ flex:0 0 auto; }
     .flash-card.size-small,.flash-card.size-medium,.flash-card.size-large{ height:clamp(300px,54dvh,520px); touch-action:pan-y; }
+    .study-layout.has-quiz .quiz-stage.size-small,.study-layout.has-quiz .quiz-stage.size-medium,.study-layout.has-quiz .quiz-stage.size-large{ height:clamp(300px,54dvh,520px); flex:0 0 auto; }
     .flash-face{ padding:16px; }
     .flash-face-content{ padding:8px; font-size:clamp(18px,5vw,25px); }
     .flash-face-content img{ max-height:27dvh; }
@@ -932,6 +951,10 @@
     .track-toggle{ order:2; justify-content:center; }
     .control-center{ order:1; width:100%; justify-content:center; gap:22px; }
     .control-right{ order:3; justify-content:center; }
+    .study-layout.mixed-study .study-controls,.study-layout.has-quiz .quiz-controls{ display:flex; flex-wrap:wrap; justify-content:center; }
+    .study-layout.mixed-study .track-toggle{ order:2; justify-content:center; }
+    .study-layout.mixed-study .control-center,.study-layout.has-quiz .quiz-controls > .counter{ order:1; flex:1 0 100%; justify-content:center; text-align:center; }
+    .study-layout.mixed-study .control-right,.study-layout.has-quiz .quiz-control-actions{ order:3; justify-self:auto; }
     .round-btn{ width:52px; height:52px; }
   }
   @media (max-width: 700px){
@@ -967,6 +990,7 @@
     .library-grid.list-view .set-card-meta{ grid-column:1/-1; grid-row:3; }
     .home-set-grid.list-view .set-card{ grid-template-columns:minmax(0,1fr) minmax(115px,.8fr); padding:10px 12px; gap:4px 8px; }
     .flash-card.size-small,.flash-card.size-medium,.flash-card.size-large{ height:clamp(280px,50dvh,430px); }
+    .study-layout.has-quiz .quiz-stage.size-small,.study-layout.has-quiz .quiz-stage.size-medium,.study-layout.has-quiz .quiz-stage.size-large{ height:clamp(280px,50dvh,430px); }
     .flash-face{ padding:12px; }
     .flash-shortcut-bar{ flex-wrap:wrap; padding:9px 8px; font-size:11px; }
   }
@@ -1112,7 +1136,7 @@ function scheduleCloudSave(){
     const marketplaceRows = payload.sets.map(set => ({
       owner_id:userId,
       set_id:set.id,
-      set_type:set.type === 'quiz' ? 'quiz' : 'flashcards',
+      set_type:getSetType(set),
       title:set.title || 'Bez názvu',
       description:set.description || '',
       subject_code:(set.subjectCode || '').trim().toUpperCase(),
@@ -1459,7 +1483,7 @@ function openAdminSetEditor(userId, savedPayload, savedSet, email){
     const marketplaceRow = {
       owner_id:userId,
       set_id:nextSet.id,
-      set_type:nextSet.type === 'quiz' ? 'quiz' : 'flashcards',
+      set_type:getSetType(nextSet),
       title:nextSet.title || 'Bez názvu',
       description:nextSet.description || '',
       subject_code:(nextSet.subjectCode || '').trim().toUpperCase(),
@@ -1581,12 +1605,30 @@ function czechCountNoun(count,singular,few,many){
   return many;
 }
 
+function getSetType(set){
+  const cards = Array.isArray(set?.cards) ? set.cards : [];
+  const hasQuiz = cards.some(card=>card?.kind === 'quiz' || isQuizQuestionCard(card));
+  const hasFlashcards = cards.some(card=>card?.kind === 'flashcards'
+    || (card?.kind !== 'quiz' && !isQuizQuestionCard(card)));
+  if(set?.type === 'mixed' || set?.set_type === 'mixed'
+    || (hasQuiz && hasFlashcards)
+    || (cards.some(card=>card?.kind === 'quiz') && cards.some(card=>card?.kind === 'flashcards'))) return 'mixed';
+  if(set?.type === 'quiz' || set?.set_type === 'quiz' || hasQuiz) return 'quiz';
+  return 'flashcards';
+}
+
+function isQuizQuestionCard(card){
+  return Boolean(card && typeof card === 'object'
+    && Object.prototype.hasOwnProperty.call(card,'question')
+    && Array.isArray(card.options));
+}
+
 function setItemCountLabel(set){
   const count = Array.isArray(set.cards) ? set.cards.length : 0;
-  if(set.type === 'mixed' || set.set_type === 'mixed' || set.cards?.some(card=>card.kind)) {
+  if(getSetType(set) === 'mixed') {
     return `${count} ${czechCountNoun(count,'položka','položky','položek')}`;
   }
-  const isQuiz = set.type === 'quiz' || set.set_type === 'quiz';
+  const isQuiz = getSetType(set) === 'quiz';
   const noun = isQuiz
     ? czechCountNoun(count,'otázka','otázky','otázek')
     : czechCountNoun(count,'kartička','kartičky','kartiček');
@@ -1632,9 +1674,25 @@ function sanitizeRichText(value){
 function emptyCard(){ return { term:'', def:'', termImage:null, defImage:null, sectionId:null }; }
 function emptyCardWithText(term, def){ return { term, def, termImage:null, defImage:null, sectionId:null }; }
 
+function stripDuplicateFrontFromBack(front, back){
+  const frontHtml = String(front || '').trim();
+  const backHtml = String(back || '').trimStart();
+  if(!frontHtml || !backHtml) return back;
+  const separatorPattern = /^(?:\s|<br\s*\/?>|<hr\b[^>]*>|<\/(?:div|p)>)+/i;
+  if(backHtml.startsWith(frontHtml)){
+    const remainder = backHtml.slice(frontHtml.length);
+    if(separatorPattern.test(remainder)) return remainder.replace(separatorPattern,'');
+  }
+  const frontText = ankiHtmlToText(frontHtml).trim();
+  const backText = ankiHtmlToText(backHtml);
+  if(!frontText || !backText.startsWith(frontText) || !/^\s/.test(backText.slice(frontText.length))) return back;
+  return escapeHtml(backText.slice(frontText.length).trimStart()).replace(/\r?\n/g,'<br>');
+}
+
 function normalizeCard(card){
   return {
     ...card,
+    def: stripDuplicateFrontFromBack(card.term,card.def),
     termImage: card.termImage || null,
     defImage: card.defImage || card.image || null,
     sectionId: typeof card.sectionId === 'string' ? card.sectionId : null,
@@ -2231,7 +2289,7 @@ function renderMarketplace(){
     state.sets.push({
       id:uid(), sourceSetId:source.set_id, sourceOwnerId:source.owner_id,
       title:source.title, description:source.description || '', subjectCode:source.subject_code || '',
-      type:source.cards?.some(card=>card.kind) ? 'mixed' : source.set_type === 'quiz' ? 'quiz' : 'flashcards', isPublic:false, className:'', cards:JSON.parse(JSON.stringify(source.cards || [])), starred:[],
+      type:getSetType(source), isPublic:false, className:'', cards:JSON.parse(JSON.stringify(source.cards || [])), starred:[],
       sections:Array.isArray(source.sections) ? JSON.parse(JSON.stringify(source.sections)) : [],
       createdAt:Date.now(), updatedAt:Date.now(),
     });
@@ -2261,7 +2319,7 @@ function renderMarketplace(){
     const counter = document.getElementById('marketPreviewCounter');
     const paintCard = () => {
       const card = cards[cardIndex];
-      if(source.set_type === 'quiz' || card.kind === 'quiz'){
+      if(isQuizCard(card,source)){
         previewCard.classList.remove('has-image');
         previewCard.innerHTML = `<div class="market-preview-quiz"><strong>${escapeHtml(card.question || '')}</strong><ol type="A">${(card.options || []).map(option=>`<li class="${flipped&&option.correct?'correct':''}">${escapeHtml(option.text || '')}</li>`).join('')}</ol><small>${flipped?'Zeleně je označená správná odpověď':'Kliknutím zobrazíš správnou odpověď'}</small></div>`;
         counter.textContent = `${cardIndex+1} / ${cards.length}`;
@@ -2377,7 +2435,7 @@ function renderMarketplace(){
         newSets.forEach(set => state.sets.push({
           id:uid(), sourceSetId:set.set_id, sourceOwnerId:set.owner_id,
           title:set.title, description:set.description || '', subjectCode:set.subject_code || '',
-          type:set.cards?.some(card=>card.kind) ? 'mixed' : set.set_type === 'quiz' ? 'quiz' : 'flashcards', isPublic:false, className:copiedName, cards:JSON.parse(JSON.stringify(set.cards || [])), starred:[],
+          type:getSetType(set), isPublic:false, className:copiedName, cards:JSON.parse(JSON.stringify(set.cards || [])), starred:[],
           sections:Array.isArray(set.sections) ? JSON.parse(JSON.stringify(set.sections)) : [],
           createdAt:now, updatedAt:now,
         }));
@@ -2522,7 +2580,8 @@ function emptyQuizQuestion(){
 }
 
 function isQuizCard(card,set){
-  return set?.type === 'quiz' || (set?.type === 'mixed' && card?.kind === 'quiz');
+  const setType = getSetType(set);
+  return setType === 'quiz' || card?.kind === 'quiz' || isQuizQuestionCard(card);
 }
 
 function toFlashcard(card){
@@ -2543,6 +2602,29 @@ function toQuizCard(card){
   };
 }
 
+function convertAnkiQuestionFlashcard(card){
+  if(card?.kind !== 'flashcards') return null;
+  const questionText = ankiHtmlToText(card.term).trim();
+  const answerText = ankiHtmlToText(card.def).trim();
+  if(!questionText
+    || !answerText.toLocaleLowerCase('cs').startsWith(questionText.toLocaleLowerCase('cs'))) return null;
+  const answerRemainder = answerText.slice(questionText.length);
+  if(!/^\s*\r?\n/.test(answerRemainder)) return null;
+  const correctAnswer = answerRemainder.replace(/^\s*\r?\n\s*/,'').trim();
+  if(!correctAnswer) return null;
+  return {
+    ...emptyQuizQuestion(),
+    kind:'quiz',
+    question:card.term,
+    questionImage:card.termImage || card.image || null,
+    sectionId:card.sectionId || null,
+    options:[
+      { text:correctAnswer, image:card.defImage || card.image || null, correct:true },
+      { text:'Nevím', image:null, correct:false },
+    ],
+  };
+}
+
 function startCreate(subjectName=''){
   draftReturnView = state.view === 'study' ? 'library' : state.view;
   state.adminEditingSet = null;
@@ -2557,10 +2639,10 @@ function startEdit(setId){
   state.adminEditingSet = null;
   draftReturnView = state.view === 'study' ? 'library' : state.view;
   draft = JSON.parse(JSON.stringify(s));
-  draft.type = ['quiz','mixed'].includes(draft.type) ? draft.type : 'flashcards';
+  draft.type = getSetType(draft);
   draft.sections = normalizeSections(draft.sections);
   draft.cards = draft.cards.map(card => {
-    if(isQuizCard(card,draft)) return {
+    if(isQuizCard(card,draft)) return convertAnkiQuestionFlashcard(card) || {
       ...emptyQuizQuestion(),
       ...card,
       question:card.question || '',
@@ -2580,9 +2662,9 @@ function startAdminSetEdit(userId, savedPayload, savedSet, email){
   state.adminEditingSet = { userId, payload:JSON.parse(JSON.stringify(savedPayload)), email };
   draftReturnView = 'admin-sets';
   draft = JSON.parse(JSON.stringify(savedSet));
-  draft.type = ['quiz','mixed'].includes(draft.type) ? draft.type : 'flashcards';
+  draft.type = getSetType(draft);
   draft.sections = normalizeSections(draft.sections);
-  draft.cards = draft.cards.map(card => isQuizCard(card,draft) ? {
+  draft.cards = draft.cards.map(card => isQuizCard(card,draft) ? convertAnkiQuestionFlashcard(card) || {
     ...emptyQuizQuestion(),
     ...card,
     question:card.question || '',
@@ -2824,7 +2906,7 @@ function renderCreate(){
   toolbar.innerHTML = `
     <div class="toolbar-left">
       <button class="chip-btn" id="importBtn">${icon('plus',15)} Importovat</button>
-      <button class="chip-btn" id="ankiImportBtn">${icon('plus',15)} Anki (.apkg / .txt)</button>
+      <button class="chip-btn" id="ankiImportBtn">${icon('plus',15)} Anki (.apkg / .colpkg / .txt)</button>
     </div>
     <div class="toolbar-right">
       <span class="suggestions-toggle">Návrhy <button class="switch ${draft.suggestions!==false?'on':''}" id="suggSwitch"><span class="knob"></span></button></span>
@@ -2857,6 +2939,55 @@ function renderCreate(){
       <button type="button" class="btn btn-outline btn-sm" data-add-section>${icon('plus',14)} Přidat blok</button>
     `;
     const tree = sectionPanelContent.querySelector('.section-tree');
+    const deleteSectionSubtree = async section => {
+      const sectionIds = sectionDescendantIds(draft.sections,section.id);
+      const cardCount = draft.cards.filter(card=>sectionIds.includes(card.sectionId)).length;
+      const descendantCount = sectionIds.length - 1;
+      const subtreeDescription = descendantCount ? ` a ${descendantCount} podbloků` : '';
+      const cardLabel = studyCountLabel(cardCount,draft.type==='mixed'?'mixed':draft.type==='quiz');
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay confirm-overlay';
+      overlay.innerHTML = `
+        <section class="modal confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="sectionDeleteTitle" aria-describedby="sectionDeleteMessage">
+          <div class="modal-head"><h2 id="sectionDeleteTitle">Smazat blok?</h2><button type="button" class="modal-close" data-delete-close aria-label="Zavřít">${icon('x',16)}</button></div>
+          <p class="confirm-message" id="sectionDeleteMessage">Blok „${escapeHtml(sectionPathLabel(draft.sections,section.id))}“${subtreeDescription} obsahuje ${cardLabel}.</p>
+          <div class="section-delete-actions">
+            <div class="section-delete-choice-row">
+              <button type="button" class="btn btn-danger" data-delete-choice="with-cards">Smazat blok i kartičky</button>
+              <button type="button" class="btn btn-primary" data-delete-choice="without-cards">Smazat blok bez kartiček</button>
+            </div>
+            <div class="section-delete-cancel-row"><button type="button" class="btn btn-ghost" data-delete-choice="cancel">Zrušit</button></div>
+          </div>
+        </section>`;
+      const choice = await new Promise(resolve => {
+        let settled = false;
+        const finish = value => {
+          if(settled) return;
+          settled = true;
+          overlay.remove();
+          resolve(value);
+        };
+        overlay.addEventListener('click',event=>{ if(event.target===overlay) finish('cancel'); });
+        overlay.addEventListener('keydown',event=>{
+          if(event.key==='Escape'){ event.preventDefault(); finish('cancel'); }
+        });
+        overlay.querySelector('[data-delete-close]').onclick = () => finish('cancel');
+        overlay.querySelectorAll('[data-delete-choice]').forEach(button=>{
+          button.onclick = () => finish(button.dataset.deleteChoice);
+        });
+        document.body.appendChild(overlay);
+        overlay.querySelector('[data-delete-choice="cancel"]').focus();
+      });
+      if(choice === 'cancel') return;
+      if(choice === 'with-cards'){
+        draft.cards = draft.cards.filter(card=>!sectionIds.includes(card.sectionId));
+      }else{
+        draft.cards.forEach(card=>{ if(sectionIds.includes(card.sectionId)) card.sectionId = null; });
+      }
+      draft.sections = draft.sections.filter(item=>!sectionIds.includes(item.id));
+      sectionIds.forEach(id=>expandedEditorSections.delete(id));
+      rebuildRows();
+    };
     const renderNode = (section, depth=0) => {
       const children = draft.sections.filter(item => item.parentId === section.id);
       const directCount = draft.cards.filter(card => card.sectionId === section.id).length;
@@ -2864,16 +2995,21 @@ function renderCreate(){
       node.className = 'section-tree-node';
       if(children.length){
         node.open = expandedEditorSections.has(section.id);
-        node.innerHTML = `<summary><span class="section-tree-label">${escapeHtml(section.name)}</span><span class="section-tree-count">${directCount}</span><span class="section-tree-actions"><button type="button" data-add-child title="Přidat podblok" aria-label="Přidat podblok">＋</button></span></summary><div class="section-tree-children"></div>`;
+        node.innerHTML = `<summary><span class="section-tree-label">${escapeHtml(section.name)}</span><span class="section-tree-count">${directCount}</span><span class="section-tree-actions"><button type="button" data-add-child title="Přidat podblok" aria-label="Přidat podblok">＋</button><button type="button" data-delete-section title="Smazat blok" aria-label="Smazat blok ${escapeHtml(section.name)}">${icon('trash',14)}</button></span></summary><div class="section-tree-children"></div>`;
         node.addEventListener('toggle',()=>node.open ? expandedEditorSections.add(section.id) : expandedEditorSections.delete(section.id));
       }else{
         node.classList.add('section-tree-leaf');
-        node.innerHTML = `<div class="section-tree-row"><span class="section-tree-label">${escapeHtml(section.name)}</span><span class="section-tree-count">${directCount}</span><span class="section-tree-actions"><button type="button" data-add-child title="Přidat podblok" aria-label="Přidat podblok">＋</button></span></div>`;
+        node.innerHTML = `<div class="section-tree-row"><span class="section-tree-label">${escapeHtml(section.name)}</span><span class="section-tree-count">${directCount}</span><span class="section-tree-actions"><button type="button" data-add-child title="Přidat podblok" aria-label="Přidat podblok">＋</button><button type="button" data-delete-section title="Smazat blok" aria-label="Smazat blok ${escapeHtml(section.name)}">${icon('trash',14)}</button></span></div>`;
       }
       node.querySelector('[data-add-child]').onclick = event => {
         event.preventDefault();
         event.stopPropagation();
         openSectionModal(draft.sections,section.id,newSection=>{ draft.sections.push(newSection); expandedEditorSections.add(section.id); expandedEditorSections.add(newSection.id); renderEditorSectionPanel(); rebuildRows(); });
+      };
+      node.querySelector('[data-delete-section]').onclick = async event => {
+        event.preventDefault();
+        event.stopPropagation();
+        await deleteSectionSubtree(section);
       };
       const childWrap = node.querySelector('.section-tree-children');
       children.forEach(child => childWrap.appendChild(renderNode(child,depth+1)));
@@ -3143,18 +3279,9 @@ function renderCreate(){
       rebuildRows();
     };
     if(draft.type==='mixed'){
-      const wrapper = document.createElement('div');
-      wrapper.className = 'editor-section-add-actions';
-      ['flashcards','quiz'].forEach(kind=>{
-        const option = document.createElement('button');
-        option.type = 'button';
-        option.className = button.className;
-        option.title = button.title;
-        option.innerHTML = `${icon('plus',14)} ${kind==='quiz'?'Přidat otázku ABC':'Přidat kartičku'}`;
-        option.onclick = ()=>addCard(kind);
-        wrapper.appendChild(option);
-      });
-      return wrapper;
+      button.innerHTML = `${icon('plus',14)} Přidat kartičku`;
+      button.onclick = () => addCard('flashcards');
+      return button;
     }
     button.innerHTML = `${icon('plus',14)} ${draft.type==='quiz'?'Přidat otázku':'Přidat kartičku'}`;
     button.onclick = () => addCard(draft.type==='quiz'?'quiz':'flashcards');
@@ -3488,7 +3615,7 @@ function renderAnkiCloze(value, ordinal){
   });
 }
 
-function renderAnkiTemplate(template, fields, ordinal, frontSide=''){
+function renderAnkiTemplate(template, fields, ordinal, frontSide='', includeFrontSide=true){
   const fieldValues = new Map(Object.entries(fields).map(([name,value]) => [name.toLowerCase(),value]));
   let rendered = String(template || '').replace(/\{\{([#^])\s*([^}]+?)\s*\}\}([\s\S]*?)\{\{\/\s*\2\s*\}\}/g, (match, mode, name, body) => {
     const present = Boolean(fieldValues.get(name.trim().toLowerCase()));
@@ -3498,7 +3625,7 @@ function renderAnkiTemplate(template, fields, ordinal, frontSide=''){
     const parts = token.split(':');
     const modifier = parts.length > 1 ? parts.shift().trim().toLowerCase() : '';
     const name = parts.join(':').trim();
-    if(name.toLowerCase() === 'frontside') return frontSide;
+    if(name.toLowerCase() === 'frontside') return includeFrontSide ? frontSide : '';
     const value = fieldValues.get(name.toLowerCase()) || '';
     if(modifier === 'cloze') return renderAnkiCloze(value,ordinal);
     if(modifier === 'text') return ankiHtmlToText(value);
@@ -3674,17 +3801,26 @@ function mergeImportedAnkiSections(targetSections,importedSections){
   return { sections:merged, sectionIdMap:idMap };
 }
 
+function getAnkiCardsInSourceOrder(parsed){
+  if(Array.isArray(parsed.orderedCards)) return parsed.orderedCards;
+  return [
+    ...(parsed.flashcards || []).map(card=>({ card, kind:'flashcards' })),
+    ...(parsed.quizCards || []).map(card=>({ card, kind:'quiz' })),
+  ];
+}
+
 function getAnkiQuizCards(parsed){
-  const convertedCards = parsed.flashcards
-    .filter(card => ankiHtmlToText(card.term) && ankiHtmlToText(card.def))
-    .map(card => ({
+  return getAnkiCardsInSourceOrder(parsed).map(({card,kind})=>{
+    if(kind === 'quiz') return card;
+    if(!ankiHtmlToText(card.term) || !ankiHtmlToText(card.def)) return null;
+    return {
       question:ankiHtmlToText(card.term),
       questionImage:card.termImage || null,
       explanation:'',
       sectionId:card.sectionId || null,
       options:[{ text:ankiHtmlToText(card.def), image:card.defImage || null, correct:true },{ text:'Nevím', image:null, correct:false }],
-    }));
-  return [...parsed.quizCards,...convertedCards];
+    };
+  }).filter(Boolean);
 }
 
 async function parseAnkiTextExport(file){
@@ -3709,6 +3845,7 @@ async function parseAnkiTextExport(file){
   });
   const flashcards = [];
   const quizCards = [];
+  const orderedCards = [];
   const sections = [];
   const sectionByPath = new Map();
   let uncheckedAnswers = 0;
@@ -3727,7 +3864,9 @@ async function parseAnkiTextExport(file){
       if(question.needsCorrectChoice) uncheckedAnswers += 1;
       missingImages += question.missingImages;
       const { missingImages:questionMissingImages, ...quizCard } = question;
-      quizCards.push({ ...quizCard, sectionId });
+      const importedCard = { ...quizCard, sectionId };
+      quizCards.push(importedCard);
+      orderedCards.push({ card:importedCard, kind:'quiz' });
       return;
     }
     const front = importAnkiSide(values[0],new Map());
@@ -3740,7 +3879,9 @@ async function parseAnkiTextExport(file){
       : importAnkiSide(backHtml,new Map());
     missingImages += front.missingImages + back.missingImages;
     if(front.text || back.text){
-      flashcards.push({ term:front.text, def:back.text, termImage:null, defImage:null, sectionId });
+      const importedCard = { term:front.text, def:back.text, termImage:null, defImage:null, sectionId };
+      flashcards.push(importedCard);
+      orderedCards.push({ card:importedCard, kind:'flashcards' });
     }
   });
   const detectedType = quizCards.length > flashcards.length ? 'quiz' : 'flashcards';
@@ -3749,7 +3890,7 @@ async function parseAnkiTextExport(file){
   if(missingImages) warnings.push(`V textovém exportu se nepodařilo najít ${missingImages} obrázků.`);
   return {
     title:file.name.replace(/\.(?:apkg|txt|tsv)$/i,''),
-    detectedType, flashcards, quizCards, sections, uncheckedAnswers,
+    detectedType, flashcards, quizCards, orderedCards, sections, uncheckedAnswers,
     missingImages,
     structureWarning:warnings.join(' '),
   };
@@ -3760,7 +3901,7 @@ async function parseAnkiPackage(file){
   const archive = await JSZip.loadAsync(file);
   const modernDatabaseFile = archive.file('collection.anki21b');
   const databaseFile = modernDatabaseFile || archive.file('collection.anki21') || archive.file('collection.anki2');
-  if(!databaseFile) throw new Error('V balíčku se nenašla podporovaná databáze Anki. Použij export .apkg.');
+  if(!databaseFile) throw new Error('V balíčku se nenašla podporovaná databáze Anki. Použij export .apkg nebo .colpkg.');
   let databaseBytes = new Uint8Array(await databaseFile.async('uint8array'));
   if(modernDatabaseFile){
     try{
@@ -3787,7 +3928,7 @@ async function parseAnkiPackage(file){
       deckNames = new Map(Object.entries(decks).map(([id,deck])=>[String(id),String(deck.name || '')]));
     }
     if(!Object.keys(models).length) throw new Error('Export Anki neobsahuje definice typů poznámek.');
-    const notes = database.exec('SELECT id, mid, flds, tags FROM notes')[0]?.values || [];
+    const notes = database.exec('SELECT id, mid, flds, tags FROM notes ORDER BY id')[0]?.values || [];
     const cards = database.exec('SELECT nid, ord, did FROM cards ORDER BY id')[0]?.values || [];
     const cardsByNote = new Map();
     cards.forEach(([noteId,ordinal,deckId]) => {
@@ -3836,6 +3977,7 @@ async function parseAnkiPackage(file){
 
     const flashcards = [];
     const quizCards = [];
+    const orderedCards = [];
     let uncheckedAnswers = 0;
     notes.forEach(([noteId,modelId,rawFields,tags]) => {
       const model = models[String(modelId)];
@@ -3851,25 +3993,29 @@ async function parseAnkiPackage(file){
         const modelCards = cardsByNote.get(String(noteId)) || [];
         const quizCard = { ...multipleChoice };
         delete quizCard.missingImages;
-        quizCards.push({ ...quizCard, sectionId:modelCards.length ? sectionIdForDeck(modelCards[0].deckId) : null });
+        const importedCard = { ...quizCard, sectionId:modelCards.length ? sectionIdForDeck(modelCards[0].deckId) : null };
+        quizCards.push(importedCard);
+        orderedCards.push({ card:importedCard, kind:'quiz' });
         return;
       }
       const modelCards = cardsByNote.get(String(noteId)) || [{ ordinal:0, deckId:null }];
       modelCards.forEach(({ordinal,deckId}) => {
         const template = (model.tmpls || []).find(item => Number(item.ord) === ordinal) || (model.tmpls || [])[0];
         const questionHtml = template ? renderAnkiTemplate(template.qfmt,fields,ordinal+1) : definitions[0] ? fields[definitions[0].name] : '';
-        const answerHtml = template ? renderAnkiTemplate(template.afmt,fields,ordinal+1,questionHtml) : definitions[1] ? fields[definitions[1].name] : '';
+        const answerHtml = template ? renderAnkiTemplate(template.afmt,fields,ordinal+1,questionHtml,false) : definitions[1] ? fields[definitions[1].name] : '';
         const question = importAnkiSide(questionHtml,media);
         const answer = importAnkiSide(answerHtml,media);
         missingImages += question.missingImages + answer.missingImages;
         if(question.text || answer.text || question.image || answer.image){
-          flashcards.push({ term:question.text, def:answer.text, termImage:question.image, defImage:answer.image, sectionId:deckId ? sectionIdForDeck(deckId) : null });
+          const importedCard = { term:question.text, def:answer.text, termImage:question.image, defImage:answer.image, sectionId:deckId ? sectionIdForDeck(deckId) : null };
+          flashcards.push(importedCard);
+          orderedCards.push({ card:importedCard, kind:'flashcards' });
         }
       });
     });
     const detectedType = quizCards.length > flashcards.length ? 'quiz' : 'flashcards';
     const structureWarning = missingImages ? ` V balíčku se nepodařilo najít ${missingImages} obrázků.` : '';
-    return { title:file.name.replace(/\.apkg$/i,''), detectedType, flashcards, quizCards, sections, uncheckedAnswers, missingImages, structureWarning };
+    return { title:file.name.replace(/\.(?:apkg|colpkg)$/i,''), detectedType, flashcards, quizCards, orderedCards, sections, uncheckedAnswers, missingImages, structureWarning };
   }finally{
     database.close();
   }
@@ -3878,8 +4024,8 @@ async function parseAnkiPackage(file){
 function openAnkiImportModal(){
   openModal(`
     <div class="modal-head"><h2>Importovat z Anki</h2><button class="modal-close" data-close>${icon('x',16)}</button></div>
-    <p class="page-sub">Vyber balíček .apkg nebo textový export .txt/.tsv. Typ obsahu rozpoznám podle polí a před importem ho můžeš změnit.</p>
-    <input class="field-box" id="ankiFileInput" type="file" accept=".apkg,.txt,.tsv,application/octet-stream,text/plain">
+    <p class="page-sub">Vyber balíček .apkg/.colpkg nebo textový export .txt/.tsv. Typ obsahu rozpoznám podle polí a před importem ho můžeš změnit.</p>
+    <input class="field-box" id="ankiFileInput" type="file" accept=".apkg,.colpkg,.txt,.tsv,application/octet-stream,text/plain">
     <p class="page-sub" id="ankiImportStatus" role="status">Soubor se zpracuje v tomto prohlížeči.</p>
     <div id="ankiImportSummary" hidden>
       <label class="class-field-label" for="ankiImportType">Importovat jako</label>
@@ -3899,7 +4045,7 @@ function openAnkiImportModal(){
     if(!parsed) return;
     const quizCards = getAnkiQuizCards(parsed);
     const selectedCards = typeSelect.value === 'quiz' ? quizCards
-      : typeSelect.value === 'mixed' ? [...parsed.flashcards,...parsed.quizCards]
+      : typeSelect.value === 'mixed' ? getAnkiCardsInSourceOrder(parsed)
       : parsed.flashcards;
     importButton.disabled = !selectedCards?.length;
     const mixed = parsed.quizCards.length > 0 && parsed.flashcards.length > 0;
@@ -3926,10 +4072,7 @@ function openAnkiImportModal(){
   importButton.onclick = async () => {
     const type = typeSelect.value;
     const importedCards = type === 'quiz' ? getAnkiQuizCards(parsed)
-      : type === 'mixed' ? [
-        ...(parsed?.flashcards || []).map(card=>({...card,kind:'flashcards'})),
-        ...(parsed?.quizCards || []).map(card=>({...card,kind:'quiz'})),
-      ]
+      : type === 'mixed' ? getAnkiCardsInSourceOrder(parsed).map(({card,kind})=>({...card,kind}))
       : parsed?.flashcards;
     if(!importedCards?.length) return;
     if(!draft.title.trim()) draft.title = parsed.title;
@@ -3999,7 +4142,7 @@ async function commitDraft(){
     const { error:marketplaceError } = await supabaseClient.from('marketplace_sets').upsert({
       owner_id:userId,
       set_id:nextSet.id,
-      set_type:nextSet.type === 'quiz' ? 'quiz' : 'flashcards',
+      set_type:getSetType(nextSet),
       title:nextSet.title || 'Bez názvu',
       description:nextSet.description || '',
       subject_code:(nextSet.subjectCode || '').trim().toUpperCase(),
@@ -4181,7 +4324,8 @@ function renderStudySectionPanel(set, study){
     study.selectedAnswer = null;
     study.answerCorrect = false;
     render();
-    showToast(`Výběr potvrzen: ${studyCountLabel(indices.length,set.type==='mixed'?'mixed':set.type==='quiz')}.`);
+    const setType = getSetType(set);
+    showToast(`Výběr potvrzen: ${studyCountLabel(indices.length,setType==='mixed'?'mixed':setType==='quiz')}.`);
   };
   return overlay;
 }
@@ -4221,7 +4365,8 @@ function renderStudy(){
   const body = document.createElement('div');
   body.className = 'study-body';
   const layout = document.createElement('div');
-  layout.className = 'study-layout';
+  const setType = getSetType(s);
+  layout.className = `study-layout${setType==='mixed'?' mixed-study':''}${setType!=='flashcards'?' has-quiz':''}`;
   layout.append(body);
   const sectionOverlay = renderStudySectionPanel(s,st);
   const sectionToggle = topbar.querySelector('#studySectionToggle');
@@ -4270,7 +4415,7 @@ function renderStudy(){
       <div class="done-panel">
         <div class="emoji">🎉</div>
         <h2>Skvělá práce!</h2>
-        <p>Prošel(a) jsi ${s.type==='quiz'?'všechny otázky':s.type==='mixed'?'všechny položky':'všechny kartičky'} v této sadě.</p>
+        <p>Prošel(a) jsi ${setType==='quiz'?'všechny otázky':setType==='mixed'?'všechny položky':'všechny kartičky'} v této sadě.</p>
         <div class="done-actions">
           ${canPracticeWrong ? '<button class="btn btn-ghost" id="wrongBtn">Procvičit, co neumím</button>' : ''}
           <button class="btn btn-ghost" id="restartBtn2">Začít znovu</button>
@@ -4286,7 +4431,7 @@ function renderStudy(){
   }
 
   const currentCard = s.cards[st.queue[st.pointer]];
-  if(s.type === 'quiz' || isQuizCard(currentCard,s)){
+  if(setType === 'quiz' || isQuizCard(currentCard,s)){
     renderQuizStudy(s,st,body);
     return wrap;
   }
@@ -4295,7 +4440,7 @@ function renderStudy(){
   const card = s.cards[cardIdx];
   const frontIsTerm = st.settings.front === 'term';
   const frontText = frontIsTerm ? card.term : card.def;
-  const backText = frontIsTerm ? card.def : card.term;
+  const backText = stripDuplicateFrontFromBack(frontText,frontIsTerm ? card.def : card.term);
   const frontImage = frontIsTerm ? (card.termImage || card.image) : (card.defImage || card.image);
   const backImage = frontIsTerm ? (card.defImage || card.image) : (card.termImage || card.image);
   const isStarred = (s.starred||[]).includes(cardIdx);
@@ -4346,6 +4491,7 @@ function renderStudy(){
       <button id="shuffleBtn" title="Zamíchat">${icon('shuffle',17)}</button>
       <button id="settingsBtn" title="Nastavení">${icon('gear',18)}</button>
       <button id="fullscreenBtn" title="Celá obrazovka">${icon('expand',17)}</button>
+      ${setType==='mixed'?`<button class="btn btn-primary" id="mixedNextBtn">Další otázka ${icon('arrow',16)}</button>`:''}
     </div>
   `;
   body.appendChild(controls);
@@ -4437,6 +4583,7 @@ function renderStudy(){
   controls.querySelector('#trackSwitch').onclick = (e) => {
     setTrackProgress(!st.settings.trackProgress);
   };
+  controls.querySelector('#mixedNextBtn')?.addEventListener('click',()=>advance(true));
 
   // keyboard shortcuts
   wrap.tabIndex = -1;
@@ -4465,11 +4612,13 @@ function renderStudy(){
 
 function renderQuizStudy(set, study, body){
   const cardIndex = study.queue[study.pointer];
-  const question = set.cards[cardIndex];
+  const sourceCard = set.cards[cardIndex];
+  const question = isQuizQuestionCard(sourceCard) ? sourceCard : convertAnkiQuestionFlashcard(sourceCard);
+  if(!question) throw new Error('Položku se nepodařilo převést na ABC otázku.');
   const options = Array.isArray(question.options) ? question.options : [];
   const selectedIndex = study.selectedAnswer;
   const stage = document.createElement('div');
-  stage.className = 'quiz-stage';
+  stage.className = `quiz-stage size-${study.settings.cardSize || 'large'}`;
   stage.innerHTML = `
     <div class="quiz-question flash-rich-text">${sanitizeRichText(question.question || '—')}</div>
     ${question.questionImage ? `<img class="quiz-question-image-display" src="${escapeHtml(question.questionImage)}" alt="Obrázek k otázce">` : ''}
@@ -4499,13 +4648,13 @@ function renderQuizStudy(set, study, body){
   controls.innerHTML = `
     <div class="track-toggle">Sledovat pokrok <button class="switch ${study.settings.trackProgress?'on':''}" id="trackSwitch"><span class="knob"></span></button></div>
     <span class="counter">${study.reviewed+1} / ${study.reviewed+study.queue.length}</span>
-    <div class="control-right">
+    <div class="control-right quiz-control-actions">
       <button id="undoBtn" title="Zpět">${icon('undo',18)}</button>
       <button id="shuffleBtn" title="Zamíchat">${icon('shuffle',17)}</button>
       <button id="settingsBtn" title="Nastavení">${icon('gear',18)}</button>
       <button id="fullscreenBtn" title="Celá obrazovka">${icon('expand',17)}</button>
-    </div>
-    <button class="btn btn-primary" id="quizNext" ${study.answered?'':'disabled'}>${study.queue.length===1?'Dokončit':'Další otázka'} ${icon('arrow',16)}</button>`;
+      <button class="btn btn-primary" id="quizNext" ${study.answered?'':'disabled'}>${study.queue.length===1?'Dokončit':'Další otázka'} ${icon('arrow',16)}</button>
+    </div>`;
   body.appendChild(controls);
   controls.querySelector('#quizNext').onclick = () => {
     study.history.push({
