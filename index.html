@@ -411,6 +411,8 @@
   .create-topbar{
     display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; gap:14px; flex-wrap:wrap;
   }
+  .create-save-status{ display:none; margin:-12px 0 18px; color:#ffb4a2; font-size:13px; line-height:1.5; }
+  .create-save-status.visible{ display:block; }
   .pill-toggle{
     display:inline-flex; align-items:center; gap:7px;
     background:var(--field); border:1px solid var(--field-border);
@@ -1043,6 +1045,7 @@ let supabaseClient = null;
 let currentUser = null;
 let authView = 'login';
 let cloudSaveTimer = null;
+let cloudSaveQueue = Promise.resolve();
 let authReady = false;
 let authLoadId = 0;
 let isAdmin = false;
@@ -1135,20 +1138,100 @@ function getCloudPayload(){
   return JSON.parse(JSON.stringify({ sets:state.sets, classes:state.classes, classIcons:state.classIcons, classVisibility:state.classVisibility, progress:state.progress }));
 }
 
+const CARD_IMAGE_BUCKET = 'flashcard-images';
+const cardImageUploadCache = new Map();
+
+function getCardImageExtension(contentType){
+  const extensions = {
+    'image/avif':'avif',
+    'image/bmp':'bmp',
+    'image/gif':'gif',
+    'image/jpeg':'jpg',
+    'image/png':'png',
+    'image/svg+xml':'svg',
+    'image/webp':'webp',
+  };
+  return extensions[contentType] || 'img';
+}
+
+async function uploadCardImage(image,userId){
+  if(typeof image !== 'string' || !image.startsWith('data:image/')) return image;
+  if(!supabaseClient?.storage) throw new Error('Úložiště obrázků není dostupné. Obnov stránku a zkus uložení znovu.');
+  if(typeof crypto === 'undefined' || !crypto.subtle) throw new Error('Prohlížeč nepodporuje bezpečné ukládání obrázků. Aktualizuj ho a zkus to znovu.');
+  const response = await fetch(image);
+  if(!response.ok) throw new Error('Obrázek se nepodařilo připravit k nahrání.');
+  const blob = await response.blob();
+  const digest = await crypto.subtle.digest('SHA-256',await blob.arrayBuffer());
+  const hash = Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+  const path = `${userId}/${hash}.${getCardImageExtension(blob.type)}`;
+  const cacheKey = `${CARD_IMAGE_BUCKET}/${path}`;
+  if(!cardImageUploadCache.has(cacheKey)){
+    const upload = (async()=>{
+      const { error } = await supabaseClient.storage.from(CARD_IMAGE_BUCKET).upload(path,blob,{
+        cacheControl:'31536000',
+        contentType:blob.type,
+        upsert:false,
+      });
+      const alreadyExists = error && (error.statusCode === '409' || error.status === 409 || error.code === 'Duplicate' || /already exists|duplicate/i.test(error.message || ''));
+      if(error && !alreadyExists) throw new Error(`Nahrání obrázku se nezdařilo: ${error.message}`);
+      return supabaseClient.storage.from(CARD_IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+    })();
+    cardImageUploadCache.set(cacheKey,upload);
+    upload.catch(()=>cardImageUploadCache.delete(cacheKey));
+  }
+  return cardImageUploadCache.get(cacheKey);
+}
+
+async function preparePayloadImages(payload,userId){
+  const storedPayload = JSON.parse(JSON.stringify(payload));
+  const storageOwnerId = currentUser?.id || userId;
+  const imageSlots = [];
+  for(const set of storedPayload.sets || []){
+    for(const card of set.cards || []){
+      for(const key of ['questionImage','termImage','defImage','image']){
+        if(typeof card[key] === 'string' && card[key].startsWith('data:image/')) imageSlots.push({ target:card, key });
+      }
+      for(const option of card.options || []){
+        if(typeof option.image === 'string' && option.image.startsWith('data:image/')) imageSlots.push({ target:option, key:'image' });
+      }
+    }
+  }
+  for(let offset=0;offset<imageSlots.length;offset+=6){
+    await Promise.all(imageSlots.slice(offset,offset+6).map(async slot=>{
+      slot.target[slot.key] = await uploadCardImage(slot.target[slot.key],storageOwnerId);
+    }));
+  }
+  return storedPayload;
+}
+
 async function persistCloudPayload(payload,userId){
-  if(!supabaseClient || currentUser?.id !== userId) return { saved:false, warning:'' };
-  const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload, updated_at:new Date().toISOString() });
-  if(error) return { saved:false, warning:'Uložení se nezdařilo: ' + error.message };
+  if(!supabaseClient || currentUser?.id !== userId) return { saved:false, warning:'Relace se změnila. Obnov stránku, přihlas se znovu a zkus uložení zopakovat.' };
+  let storedPayload;
+  try{
+    storedPayload = await preparePayloadImages(payload,userId);
+  }catch(error){
+    return { saved:false, warning:'Uložení obrázků se nezdařilo: ' + (error?.message || 'Zkontroluj nastavení úložiště a zkus to znovu.') };
+  }
+  let saveError = null;
+  for(let attempt=0;attempt<3;attempt++){
+    const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload:storedPayload, updated_at:new Date().toISOString() });
+    if(!error){ saveError = null; break; }
+    saveError = error;
+    const timedOut = error.code === '57014' || /statement timeout|canceling statement/i.test(error.message || '');
+    if(!timedOut || attempt === 2) break;
+    await new Promise(resolve => setTimeout(resolve,300*(attempt+1)));
+  }
+  if(saveError) return { saved:false, warning:'Uložení se nezdařilo: ' + saveError.message };
 
   const warning = message => showToast('Data byla uložena, ale ' + message);
-  const marketplaceRows = payload.sets.map(set => ({
+  const marketplaceRows = storedPayload.sets.map(set => ({
     owner_id:userId,
     set_id:set.id,
     set_type:getSetType(set),
     title:set.title || 'Bez názvu',
     description:set.description || '',
     subject_code:(set.subjectCode || '').trim().toUpperCase(),
-    subject_id:set.className && payload.classVisibility[set.className] === true ? set.className : null,
+    subject_id:set.className && storedPayload.classVisibility[set.className] === true ? set.className : null,
     cards:set.cards || [],
     sections:set.sections || [],
     is_public:set.isPublic === true,
@@ -1158,12 +1241,12 @@ async function persistCloudPayload(payload,userId){
     const { error:marketplaceError } = await supabaseClient.from('marketplace_sets').upsert(marketplaceRows);
     if(marketplaceError){ warning('Burza se nepodařila synchronizovat: ' + marketplaceError.message); return { saved:true, warning:'Burza se nepodařila synchronizovat.' }; }
   }
-  const subjectRows = payload.classes.map(name => ({
+  const subjectRows = storedPayload.classes.map(name => ({
     owner_id:userId,
     subject_id:name,
     name,
-    icon:payload.classIcons[name] || '📚',
-    is_public:payload.classVisibility[name] === true,
+    icon:storedPayload.classIcons[name] || '📚',
+    is_public:storedPayload.classVisibility[name] === true,
     updated_at:new Date().toISOString(),
   }));
   if(subjectRows.length){
@@ -1172,7 +1255,7 @@ async function persistCloudPayload(payload,userId){
   }
   const { data:ownedSubjects, error:ownedSubjectsError } = await supabaseClient.from('marketplace_subjects').select('subject_id').eq('owner_id',userId);
   if(ownedSubjectsError){ warning('Kontrola předmětů se nezdařila: ' + ownedSubjectsError.message); return { saved:true, warning:'Kontrola předmětů se nezdařila.' }; }
-  const activeSubjects = new Set(payload.classes);
+  const activeSubjects = new Set(storedPayload.classes);
   const removedSubjects = (ownedSubjects || []).map(row => row.subject_id).filter(name => !activeSubjects.has(name));
   if(removedSubjects.length){
     const { error:removeSubjectError } = await supabaseClient.from('marketplace_subjects').delete().eq('owner_id',userId).in('subject_id',removedSubjects);
@@ -1180,7 +1263,7 @@ async function persistCloudPayload(payload,userId){
   }
   const { data:ownedRows, error:ownedError } = await supabaseClient.from('marketplace_sets').select('set_id').eq('owner_id',userId);
   if(ownedError){ warning('Kontrola burzy se nezdařila: ' + ownedError.message); return { saved:true, warning:'Kontrola burzy se nezdařila.' }; }
-  const activeIds = new Set(payload.sets.map(set => set.id));
+  const activeIds = new Set(storedPayload.sets.map(set => set.id));
   const removedIds = (ownedRows || []).map(row => row.set_id).filter(setId => !activeIds.has(setId));
   if(removedIds.length){
     const { error:removeError } = await supabaseClient.from('marketplace_sets').delete().eq('owner_id',userId).in('set_id',removedIds);
@@ -1193,10 +1276,17 @@ async function flushCloudSave(){
   clearTimeout(cloudSaveTimer);
   if(!supabaseClient || !currentUser) return { saved:false, warning:'Nejsi přihlášený. Přihlas se a zkus sadu uložit znovu.' };
   try{
-    return await persistCloudPayload(getCloudPayload(),currentUser.id);
+    await cloudSaveQueue.catch(()=>{});
+    return await enqueueCloudSave(getCloudPayload(),currentUser.id);
   }catch(error){
     return { saved:false, warning:'Uložení se nezdařilo: ' + (error?.message || 'Zkontroluj připojení a zkus to znovu.') };
   }
+}
+
+function enqueueCloudSave(payload,userId){
+  const save = cloudSaveQueue.catch(()=>{}).then(()=>persistCloudPayload(payload,userId));
+  cloudSaveQueue = save;
+  return save;
 }
 
 function scheduleCloudSave(){
@@ -1207,7 +1297,7 @@ function scheduleCloudSave(){
   cloudSaveTimer = setTimeout(async () => {
     if(currentUser?.id !== userId) return;
     try{
-      const result = await persistCloudPayload(payload,userId);
+      const result = await enqueueCloudSave(payload,userId);
       if(!result.saved) showToast(result.warning || 'Synchronizace se nezdařila.');
     }catch(error){
       showToast('Synchronizace se nezdařila: ' + (error?.message || 'Zkontroluj připojení.'));
@@ -1512,23 +1602,27 @@ function openAdminSetEditor(userId, savedPayload, savedSet, email){
     if(setIndex < 0){ showToast('Sada už v tomto účtu neexistuje. Obnov přehled a zkus to znovu.'); return; }
     const nextPayload = { ...payload, sets:[...payload.sets] };
     nextPayload.sets[setIndex] = nextSet;
-    const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload:nextPayload, updated_at:new Date().toISOString() });
+    let storedPayload;
+    try{ storedPayload = await preparePayloadImages(nextPayload,userId); }
+    catch(error){ showToast('Uložení obrázků se nezdařilo: ' + (error?.message || 'Zkontroluj nastavení úložiště.')); return; }
+    const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload:storedPayload, updated_at:new Date().toISOString() });
     if(error){ showToast('Uložení se nezdařilo: ' + error.message); return; }
     if(currentUser?.id === userId){
       clearTimeout(cloudSaveTimer);
-      loadData(nextPayload);
+      loadData(storedPayload);
     }
+    const storedSet = storedPayload.sets[setIndex];
     const marketplaceRow = {
       owner_id:userId,
-      set_id:nextSet.id,
-      set_type:getSetType(nextSet),
-      title:nextSet.title || 'Bez názvu',
-      description:nextSet.description || '',
-      subject_code:(nextSet.subjectCode || '').trim().toUpperCase(),
-      subject_id:nextSet.className && nextPayload.classVisibility?.[nextSet.className] === true ? nextSet.className : null,
-      cards:nextSet.cards,
-      sections:nextSet.sections || [],
-      is_public:nextSet.isPublic === true,
+      set_id:storedSet.id,
+      set_type:getSetType(storedSet),
+      title:storedSet.title || 'Bez názvu',
+      description:storedSet.description || '',
+      subject_code:(storedSet.subjectCode || '').trim().toUpperCase(),
+      subject_id:storedSet.className && storedPayload.classVisibility?.[storedSet.className] === true ? storedSet.className : null,
+      cards:storedSet.cards,
+      sections:storedSet.sections || [],
+      is_public:storedSet.isPublic === true,
       updated_at:new Date().toISOString(),
     };
     const { error:marketplaceError } = await supabaseClient.from('marketplace_sets').upsert(marketplaceRow);
@@ -1560,7 +1654,10 @@ function openAdminPayloadEditor(userId, savedPayload, email){
     if(!nextPayload.classIcons || typeof nextPayload.classIcons !== 'object') nextPayload.classIcons = {};
     if(!nextPayload.classVisibility || typeof nextPayload.classVisibility !== 'object') nextPayload.classVisibility = {};
     if(!nextPayload.progress || typeof nextPayload.progress !== 'object') nextPayload.progress = {};
-    const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload:nextPayload, updated_at:new Date().toISOString() });
+    let storedPayload;
+    try{ storedPayload = await preparePayloadImages(nextPayload,userId); }
+    catch(error){ showToast('Uložení obrázků se nezdařilo: ' + (error?.message || 'Zkontroluj nastavení úložiště.')); return; }
+    const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload:storedPayload, updated_at:new Date().toISOString() });
     if(error){ showToast('Uložení se nezdařilo: ' + error.message); return; }
     closeModal();
     showToast('Data účtu byla uložena.');
@@ -2893,6 +2990,11 @@ function renderCreate(){
     <button class="btn btn-primary" id="createTop">${state.editingSetId ? 'Uložit' : 'Vytvořit'}</button>
   `;
   wrap.appendChild(top);
+  const saveStatus = document.createElement('p');
+  saveStatus.className = 'create-save-status';
+  saveStatus.id = 'createSaveStatus';
+  saveStatus.setAttribute('role','alert');
+  wrap.appendChild(saveStatus);
 
   const modeSwitch = document.createElement('div');
   modeSwitch.className = 'set-mode-switch';
@@ -4212,12 +4314,22 @@ async function commitDraft(){
   }
   draftSaveInProgress = true;
   const saveButtons = [...document.querySelectorAll('#createTop,.create-footer button')];
-  const saveButtonLabels = saveButtons.map(button => button.textContent);
   saveButtons.forEach(button => { button.disabled = true; button.textContent = 'Ukládám…'; });
-  const restoreSaveButtons = () => saveButtons.forEach((button,index) => {
-    button.disabled = false;
-    button.textContent = saveButtonLabels[index];
-  });
+  const restoreSaveButtons = message => {
+    const status = document.getElementById('createSaveStatus');
+    if(status){
+      status.textContent = message;
+      status.classList.add('visible');
+    }
+    saveButtons.forEach(button => {
+      button.disabled = false;
+      button.textContent = 'Zkusit znovu';
+    });
+  };
+  const clearSaveStatus = () => {
+    const status = document.getElementById('createSaveStatus');
+    if(status){ status.textContent = ''; status.classList.remove('visible'); }
+  };
   try{
     for(const card of validCards) if(isQuizCard(card,draft)){
       card.questionImage = await compactCardImage(card.questionImage);
@@ -4229,8 +4341,9 @@ async function commitDraft(){
     }
   }catch(error){
     draftSaveInProgress = false;
-    restoreSaveButtons();
-    showToast(error.message || 'Obrázek se nepodařilo připravit k uložení.');
+    const message = error.message || 'Obrázek se nepodařilo připravit k uložení.';
+    restoreSaveButtons(message);
+    showToast(message);
     return;
   }
   draft.cards = validCards;
@@ -4239,23 +4352,27 @@ async function commitDraft(){
     const { userId, payload:savedPayload } = state.adminEditingSet;
     const nextSet = { ...draft, updatedAt:now };
     const setIndex = savedPayload.sets.findIndex(set => set.id === draft.id);
-    if(setIndex < 0){ draftSaveInProgress = false; restoreSaveButtons(); showToast('Sada už v tomto účtu neexistuje. Obnov přehled a zkus to znovu.'); return; }
+    if(setIndex < 0){ draftSaveInProgress = false; const message='Sada už v tomto účtu neexistuje. Obnov přehled a zkus to znovu.'; restoreSaveButtons(message); showToast(message); return; }
     const nextPayload = { ...savedPayload, sets:[...savedPayload.sets] };
     nextPayload.sets[setIndex] = nextSet;
-    const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload:nextPayload, updated_at:new Date().toISOString() });
-    if(error){ draftSaveInProgress = false; restoreSaveButtons(); showToast('Uložení se nezdařilo: ' + error.message); return; }
-    if(currentUser?.id === userId){ clearTimeout(cloudSaveTimer); loadData(nextPayload); }
+    let storedPayload;
+    try{ storedPayload = await preparePayloadImages(nextPayload,userId); }
+    catch(error){ draftSaveInProgress = false; const message='Uložení obrázků se nezdařilo: ' + (error?.message || 'Zkontroluj nastavení úložiště.'); restoreSaveButtons(message); showToast(message); return; }
+    const storedSet = storedPayload.sets[setIndex];
+    const { error } = await supabaseClient.from('flashcard_data').upsert({ user_id:userId, payload:storedPayload, updated_at:new Date().toISOString() });
+    if(error){ draftSaveInProgress = false; const message='Uložení se nezdařilo: ' + error.message; restoreSaveButtons(message); showToast(message); return; }
+    if(currentUser?.id === userId){ clearTimeout(cloudSaveTimer); loadData(storedPayload); }
     const { error:marketplaceError } = await supabaseClient.from('marketplace_sets').upsert({
       owner_id:userId,
-      set_id:nextSet.id,
-      set_type:getSetType(nextSet),
-      title:nextSet.title || 'Bez názvu',
-      description:nextSet.description || '',
-      subject_code:(nextSet.subjectCode || '').trim().toUpperCase(),
-      subject_id:nextSet.className && nextPayload.classVisibility?.[nextSet.className] === true ? nextSet.className : null,
-      cards:nextSet.cards,
-      sections:nextSet.sections || [],
-      is_public:nextSet.isPublic === true,
+      set_id:storedSet.id,
+      set_type:getSetType(storedSet),
+      title:storedSet.title || 'Bez názvu',
+      description:storedSet.description || '',
+      subject_code:(storedSet.subjectCode || '').trim().toUpperCase(),
+      subject_id:storedSet.className && storedPayload.classVisibility?.[storedSet.className] === true ? storedSet.className : null,
+      cards:storedSet.cards,
+      sections:storedSet.sections || [],
+      is_public:storedSet.isPublic === true,
       updated_at:new Date().toISOString(),
     });
     draft = null;
@@ -4279,10 +4396,12 @@ async function commitDraft(){
   if(!saveResult.saved){
     if(previousSet) state.sets[idx] = previousSet;
     else state.sets = state.sets.filter(set => set.id !== draft.id);
-    restoreSaveButtons();
-    showToast(saveResult.warning);
+    const message = saveResult.warning || 'Uložení se nezdařilo. Zkontroluj připojení a zkus to znovu.';
+    restoreSaveButtons(message);
+    showToast(message);
     return;
   }
+  clearSaveStatus();
   draft = null;
   showToast(saveResult.warning || 'Sada byla uložena.');
   state.study = null;
