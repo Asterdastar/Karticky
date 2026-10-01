@@ -294,7 +294,6 @@
   .library-filter-wrap.open .library-filter-popover{ display:grid; gap:12px; }
   .library-filter-field{ display:flex; flex-direction:column; gap:6px; color:var(--text-dim); font-size:12px; font-weight:700; }
   .library-filter-field .field-box{ min-height:42px; margin:0; }
-  .library-filter-field .opt-select{ width:100%; min-width:0; }
   .library-filter-footer{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
 
   .empty-state{
@@ -767,6 +766,8 @@
   .setting-picker.open .setting-picker-menu{ display:flex; flex-direction:column; gap:2px; }
   .setting-picker-option{ border:0; border-radius:8px; padding:9px 10px; background:transparent; color:var(--text-dim); text-align:left; font:700 13px inherit; cursor:pointer; }
   .setting-picker-option:hover, .setting-picker-option.selected{ background:var(--accent-soft); color:var(--text); }
+  .filter-setting-picker .setting-picker-menu{ max-height:min(240px,40vh); overflow-y:auto; overscroll-behavior:contain; }
+  .filter-setting-picker .setting-picker-option{ flex:0 0 auto; }
   .kbd-list{ font-size:13px; color:var(--text-dim); display:flex; flex-direction:column; gap:8px; padding:6px 0 4px; }
   .kbd-list div{ display:flex; justify-content:space-between; }
   .kbd-list kbd{ background:var(--field); border:1px solid var(--field-border); padding:2px 8px; border-radius:6px; font-size:11.5px; color:var(--text); }
@@ -851,7 +852,6 @@
   .admin-filter-wrap.open .admin-set-filter-popover{ display:grid; gap:12px; }
   .admin-set-filter-field{ display:flex; flex-direction:column; gap:6px; color:var(--text-dim); font-size:12px; font-weight:700; }
   .admin-set-filter-field .field-box{ min-height:42px; margin:0; }
-  .admin-set-filter-field .opt-select{ width:100%; min-width:0; }
   .admin-set-filter-actions{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
   .admin-set-title{ max-width:320px; }
   .admin-set-title small{ color:var(--text-faint); }
@@ -1396,7 +1396,7 @@ async function loadAdminSets(container){
         <button type="button" class="admin-filter-button" id="adminSetFilterToggle" aria-label="Otevřít filtry sad" title="Filtry" aria-expanded="false" aria-pressed="false">${icon('filter',18)}</button>
         <div class="admin-set-filter-popover" id="adminSetFilterPopover">
           <label class="admin-set-filter-field">Hledat sady<input class="field-box" id="adminSetSearch" type="search" placeholder="Název, popis nebo předmět…"></label>
-          <label class="admin-set-filter-field">Vlastník<select class="opt-select" id="adminSetOwner"><option value="">Všichni vlastníci</option>${users.map(user => `<option value="${escapeHtml(user.id)}">${escapeHtml(user.email || 'Bez e-mailu')}</option>`).join('')}</select></label>
+          <label class="admin-set-filter-field">Vlastník${filterPickerMarkup('adminSetOwnerPicker','Vlastník',[{value:'',label:'Všichni vlastníci'},...users.map(user=>({value:user.id,label:user.email||'Bez e-mailu'}))],'','Filtrovat podle vlastníka')}</label>
           <div class="admin-set-filter-actions"><span class="admin-set-count" id="adminSetFilterCount"></span><button type="button" class="btn btn-outline btn-sm" id="clearAdminSetFilters">Vymazat</button></div>
         </div>
       </div>
@@ -1407,15 +1407,19 @@ async function loadAdminSets(container){
     </table></div>`;
 
   const searchInput = container.querySelector('#adminSetSearch');
-  const ownerSelect = container.querySelector('#adminSetOwner');
+  const ownerPicker = container.querySelector('#adminSetOwnerPicker');
+  let ownerId = '';
   const filterWrap = container.querySelector('#adminSetFilterWrap');
   const filterToggle = container.querySelector('#adminSetFilterToggle');
   const filterCount = container.querySelector('#adminSetFilterCount');
   const tbody = container.querySelector('#adminSetsBody');
   const count = container.querySelector('#adminSetCount');
+  const ownerPickerControl = bindFilterPicker(ownerPicker,value => {
+    ownerId = value;
+    renderRows();
+  });
   const renderRows = () => {
     const query = searchInput.value.trim().toLocaleLowerCase('cs');
-    const ownerId = ownerSelect.value;
     const filtered = sets.filter(item => {
       if(ownerId && item.userId !== ownerId) return false;
       const searchable = [item.set.title,item.set.description,item.set.className,item.set.subjectCode,item.userEmail].join(' ').toLocaleLowerCase('cs');
@@ -1438,7 +1442,6 @@ async function loadAdminSets(container){
     });
   };
   searchInput.oninput = renderRows;
-  ownerSelect.onchange = renderRows;
   filterToggle.onclick = () => {
     const isOpen = filterWrap.classList.toggle('open');
     filterToggle.setAttribute('aria-expanded',String(isOpen));
@@ -1446,11 +1449,12 @@ async function loadAdminSets(container){
   };
   container.querySelector('#clearAdminSetFilters').onclick = () => {
     searchInput.value = '';
-    ownerSelect.value = '';
-    renderRows();
+    ownerId = '';
+    ownerPickerControl.reset();
     searchInput.focus();
   };
   container.querySelector('.admin-set-toolbar').addEventListener('click',event => {
+    if(!ownerPicker.contains(event.target)) ownerPickerControl.close();
     if(!filterWrap.contains(event.target)){
       filterWrap.classList.remove('open');
       filterToggle.setAttribute('aria-expanded','false');
@@ -1640,6 +1644,48 @@ function setItemCountLabel(set){
     ? czechCountNoun(count,'otázka','otázky','otázek')
     : czechCountNoun(count,'kartička','kartičky','kartiček');
   return `${count} ${noun}`;
+}
+
+function filterPickerMarkup(id, label, options, selectedValue, ariaLabel){
+  const selected = options.find(option => option.value === selectedValue) || options[0];
+  return `<div class="setting-picker filter-setting-picker" id="${id}">
+    <button type="button" class="setting-picker-current" aria-label="${escapeHtml(ariaLabel)}" aria-haspopup="listbox" aria-expanded="false"><span>${escapeHtml(selected.label)}</span><span aria-hidden="true"></span></button>
+    <div class="setting-picker-menu" role="listbox" aria-label="${escapeHtml(label)}">${options.map(option => `<button type="button" role="option" aria-selected="${option.value===selected.value}" class="setting-picker-option ${option.value===selected.value?'selected':''}" data-filter-value="${escapeHtml(option.value)}" data-filter-label="${escapeHtml(option.label)}">${escapeHtml(option.label)}</button>`).join('')}</div>
+  </div>`;
+}
+
+function bindFilterPicker(picker, onChange){
+  const toggle = picker.querySelector('.setting-picker-current');
+  const menu = picker.querySelector('.setting-picker-menu');
+  const options = [...menu.querySelectorAll('[data-filter-value]')];
+  const setOpen = open => {
+    picker.classList.toggle('open',open);
+    toggle.setAttribute('aria-expanded',String(open));
+  };
+  toggle.onclick = () => setOpen(!picker.classList.contains('open'));
+  options.forEach(option => option.onclick = () => {
+    toggle.querySelector('span').textContent = option.dataset.filterLabel;
+    options.forEach(item => {
+      const selected = item === option;
+      item.classList.toggle('selected',selected);
+      item.setAttribute('aria-selected',String(selected));
+    });
+    setOpen(false);
+    onChange(option.dataset.filterValue);
+  });
+  picker.addEventListener('keydown',event => {
+    if(event.key === 'Escape' && picker.classList.contains('open')){
+      setOpen(false);
+      toggle.focus();
+    }
+  });
+  return {
+    close:() => setOpen(false),
+    reset:() => {
+      const first = options[0];
+      if(first) first.click();
+    },
+  };
 }
 
 function emojiPickerMarkup(selected, pickerId, inputId){
@@ -1934,12 +1980,13 @@ function openNewClassModal(){
     <div class="class-icon-field">
       <div><p class="class-field-label">Ikona předmětu</p>${emojiPickerMarkup('📚', 'newClassEmojiPicker', 'newClassIcon')}</div>
     </div>
-    <button type="button" class="pill-toggle" id="newSubjectVisibility"></button>
     <div class="class-modal-actions">
+      <button type="button" class="pill-toggle" id="newSubjectVisibility"></button>
       <button class="btn btn-ghost" data-close>Zrušit</button>
       <button class="btn btn-primary" id="saveNewClass">Přidat předmět</button>
     </div>
   `);
+  document.querySelector('#modalOverlay .modal').classList.add('class-modal');
   const input = document.getElementById('newClassName');
   bindEmojiPicker('newClassEmojiPicker', 'newClassIcon');
   const iconInput = document.getElementById('newClassIcon');
@@ -1989,6 +2036,7 @@ function openEditClassModal(oldName){
       <button class="btn btn-primary" id="saveClassEdit">Uložit změny</button>
     </div>
   `);
+  document.querySelector('#modalOverlay .modal').classList.add('class-modal');
   bindEmojiPicker('editClassEmojiPicker', 'editClassIcon');
   const nameInput = document.getElementById('editClassName');
   const iconInput = document.getElementById('editClassIcon');
@@ -2189,8 +2237,8 @@ function renderLibrary(){
           <button type="button" class="library-filter-button" id="libraryFilterToggle" aria-label="Otevřít filtry knihovny" title="Filtry" aria-expanded="false" aria-pressed="${hasActiveFilters()}">${icon('filter',18)}</button>
           <div class="library-filter-popover" id="libraryFilterPopover">
             <label class="library-filter-field">Hledat<input class="field-box" id="librarySearch" type="search" placeholder="Název, popis nebo kód" value="${escapeHtml(state.librarySearch)}"></label>
-            <label class="library-filter-field">Předmět<select class="opt-select" id="librarySubjectFilter"><option value="">Všechny předměty</option>${state.classes.map(name=>`<option value="${escapeHtml(name)}" ${state.librarySubjectFilter===name?'selected':''}>${escapeHtml(state.classIcons[name]||'📚')} ${escapeHtml(name)}</option>`).join('')}</select></label>
-            <label class="library-filter-field">Řazení<select class="opt-select" id="librarySort"><option value="updated" ${state.librarySort==='updated'?'selected':''}>Nedávné</option><option value="title" ${state.librarySort==='title'?'selected':''}>Abecedně</option><option value="created" ${state.librarySort==='created'?'selected':''}>Datum vytvoření</option></select></label>
+            <label class="library-filter-field">Předmět${filterPickerMarkup('librarySubjectPicker','Předmět',[{value:'',label:'Všechny předměty'},...state.classes.map(name=>({value:name,label:`${state.classIcons[name]||'📚'} ${name}`}))],state.librarySubjectFilter,'Filtrovat podle předmětu')}</label>
+            <label class="library-filter-field">Řazení${filterPickerMarkup('librarySortPicker','Řazení',[{value:'updated',label:'Nedávné'},{value:'title',label:'Abecedně'},{value:'created',label:'Datum vytvoření'}],state.librarySort,'Řadit sady')}</label>
             <div class="library-filter-footer"><span class="admin-set-count" id="libraryFilterCount">${setCountLabel(sorted.length)}</span><button type="button" class="btn btn-outline btn-sm" id="clearLibraryFilters">Vymazat filtry</button></div>
           </div>
         </div>
@@ -2204,8 +2252,10 @@ function renderLibrary(){
   const filterWrap = wrap.querySelector('#libraryFilterWrap');
   const filterToggle = wrap.querySelector('#libraryFilterToggle');
   const searchInput = wrap.querySelector('#librarySearch');
-  const subjectSelect = wrap.querySelector('#librarySubjectFilter');
-  const sortSelect = wrap.querySelector('#librarySort');
+  const subjectPicker = wrap.querySelector('#librarySubjectPicker');
+  const sortPicker = wrap.querySelector('#librarySortPicker');
+  let subjectPickerControl;
+  let sortPickerControl;
   const filterPopover = wrap.querySelector('#libraryFilterPopover');
   const positionFilterPopover = () => {
     const anchor = filterToggle.getBoundingClientRect();
@@ -2219,8 +2269,6 @@ function renderLibrary(){
   };
   const renderRows = () => {
     state.librarySearch = searchInput.value;
-    state.librarySubjectFilter = subjectSelect.value;
-    state.librarySort = sortSelect.value;
     const results = getFilteredSets();
     const countText = setCountLabel(results.length);
     wrap.querySelector('#libraryCount').textContent = countText;
@@ -2236,6 +2284,14 @@ function renderLibrary(){
       grid.replaceChildren(...results.map(set=>renderSetCard(set)));
     }
   };
+  subjectPickerControl = bindFilterPicker(subjectPicker,value => {
+    state.librarySubjectFilter = value;
+    renderRows();
+  });
+  sortPickerControl = bindFilterPicker(sortPicker,value => {
+    state.librarySort = value;
+    renderRows();
+  });
   filterToggle.onclick = () => {
     const isOpen = filterWrap.classList.toggle('open');
     filterToggle.setAttribute('aria-expanded',String(isOpen));
@@ -2245,18 +2301,20 @@ function renderLibrary(){
     }
   };
   searchInput.oninput = renderRows;
-  subjectSelect.onchange = renderRows;
-  sortSelect.onchange = renderRows;
   wrap.querySelector('#clearLibraryFilters').onclick = () => {
     state.librarySearch = '';
     state.librarySubjectFilter = '';
     state.activeClassFilter = null;
     searchInput.value = '';
-    subjectSelect.value = '';
-    renderRows();
+    subjectPickerControl.reset();
+    sortPickerControl.close();
     searchInput.focus();
   };
-  wrap.addEventListener('click',event=>{ if(!filterWrap.contains(event.target)){ filterWrap.classList.remove('open'); filterToggle.setAttribute('aria-expanded','false'); } });
+  wrap.addEventListener('click',event=>{
+    if(!subjectPicker.contains(event.target)) subjectPickerControl.close();
+    if(!sortPicker.contains(event.target)) sortPickerControl.close();
+    if(!filterWrap.contains(event.target)){ filterWrap.classList.remove('open'); filterToggle.setAttribute('aria-expanded','false'); }
+  });
   renderRows();
   return wrap;
 }
@@ -2275,7 +2333,7 @@ function renderMarketplace(){
     </div>
     <div class="marketplace-filters ${marketplaceMode==='subjects'?'subjects-mode':''}">
       <label class="market-search-label"><span>Hledat</span><input class="field-box" id="marketSearch" type="search" placeholder="${marketplaceMode==='sets'?'Název, popis nebo kód předmětu':'Název předmětu'}" value="${escapeHtml(marketplaceQuery)}"></label>
-      <div class="market-subject-label" id="marketSubjectFilter" style="display:${marketplaceMode==='sets'?'flex':'none'}"><span class="market-filter-label">Kód předmětu</span><div class="setting-picker market-subject-picker" id="marketSubjectPicker"><button type="button" class="setting-picker-current" id="marketSubjectToggle" aria-label="Filtrovat podle kódu předmětu" aria-expanded="false"><span>${marketplaceSubject?escapeHtml(marketplaceSubject):'Všechny kódy'}</span><span aria-hidden="true"></span></button><div class="setting-picker-menu" id="marketSubjectMenu"></div></div></div>
+      <div class="market-subject-label" id="marketSubjectFilter" style="display:${marketplaceMode==='sets'?'flex':'none'}"><span class="market-filter-label">Kód předmětu</span><div class="setting-picker filter-setting-picker market-subject-picker" id="marketSubjectPicker"><button type="button" class="setting-picker-current" id="marketSubjectToggle" aria-label="Filtrovat podle kódu předmětu" aria-expanded="false"><span>${marketplaceSubject?escapeHtml(marketplaceSubject):'Všechny kódy'}</span><span aria-hidden="true"></span></button><div class="setting-picker-menu" id="marketSubjectMenu"></div></div></div>
     </div>
     <div id="marketResults" class="market-results"><p class="page-sub">Načítám burzu…</p></div>
   `;
